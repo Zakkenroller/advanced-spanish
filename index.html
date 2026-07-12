@@ -14,11 +14,12 @@
       <span class="stat" title="Current answer streak">🔥 <span id="streak">0</span></span>
       <span class="stat level-badge" id="current-level">No level set</span>
       <span id="account-area" class="account-area"></span>
+      <button class="avatar-btn" id="profile-btn" title="Your profile" aria-label="Your profile">🙂</button>
     </div>
   </header>
 
   <!-- AUTH (only shown when cloud sync is configured; see sync-config.js) -->
-  <div id="auth-modal" class="modal hidden">
+  <div id="auth-modal" class="modal hidden" role="dialog" aria-label="Sign in to sync">
     <div class="card modal-card">
       <h3>☁️ Sync your progress</h3>
       <p class="hint">Enter your email and we’ll send a sign-in link — no password needed.
@@ -32,6 +33,43 @@
       <p id="auth-status" class="hint" aria-live="polite"></p>
     </div>
   </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="profile-modal" class="modal hidden" role="dialog" aria-label="Your profile">
+    <div class="modal-card card">
+      <h3>Your profile</h3>
+      <p class="hint modal-hint">Pick an avatar and a name — they appear in your header and
+        when you share your results. Stored only on this device (for now!).</p>
+      <input id="profile-name" type="text" maxlength="20" placeholder="Your name"
+             autocomplete="off">
+      <div id="avatar-grid" class="avatar-grid"></div>
+      <div class="card-actions modal-actions">
+        <button class="btn primary" id="profile-save">Save</button>
+        <button class="btn ghost" id="profile-close">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TENSE REFERENCE MODAL -->
+  <div id="tense-modal" class="modal hidden" role="dialog" aria-label="Tense reference">
+    <div class="modal-card card tense-card">
+      <div id="tense-modal-body"></div>
+      <div class="card-actions modal-actions">
+        <button class="btn ghost" id="tense-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Netlify Forms registration for question flags (processed at deploy time) -->
+  <form name="question-flag" data-netlify="true" netlify-honeypot="website" hidden>
+    <input type="text" name="website">
+    <input type="text" name="question">
+    <input type="text" name="answer">
+    <input type="text" name="context">
+    <input type="text" name="reason">
+    <input type="text" name="comment">
+    <input type="text" name="reporter">
+  </form>
 
   <main>
     <!-- HOME -->
@@ -50,8 +88,17 @@
       <h2>Study &amp; practice</h2>
       <div id="topic-cards" class="topic-grid"></div>
 
+      <div id="lab-section">
+        <h2>🔬 Tense Lab</h2>
+        <p class="lab-intro">Built on how tenses are actually learned: interpret forms before
+          producing them, practice inside real stories, and keep the mental shortcuts handy.</p>
+        <div id="lab-cards" class="topic-grid"></div>
+      </div>
+
       <footer class="foot">
         <button class="btn ghost small" id="reset-btn">Reset progress</button>
+        <p class="fineprint">Not affiliated with Duolingo; CEFR comparisons are approximate.
+          Spot an error? Use the 🚩 button under any question.</p>
       </footer>
     </section>
 
@@ -61,6 +108,15 @@
       <h2 id="lesson-title"></h2>
       <div id="lesson-body" class="lesson-body card"></div>
       <button class="btn primary big" id="lesson-practice-btn">✏️ Practice this now</button>
+    </section>
+
+    <!-- TOOLKIT -->
+    <section id="view-toolkit" class="view">
+      <button class="btn ghost small home-link">← Back</button>
+      <h2>🧰 Tense Toolkit</h2>
+      <p class="lab-intro">Timelines, metaphors, trigger words, and mnemonics — the mental
+        shortcuts that make tenses click. Level tags show when each one becomes relevant.</p>
+      <div id="toolkit-body" class="toolkit-body"></div>
     </section>
 
     <!-- PRACTICE -->
@@ -85,6 +141,7 @@
         <div id="results-adaptive" class="results-adaptive"></div>
         <div class="results-actions">
           <button class="btn primary big" id="again-btn">🔁 Practice again</button>
+          <button class="btn ghost big" id="share-btn">📣 Share</button>
           <button class="btn ghost big home-link">🏠 Home</button>
         </div>
       </div>

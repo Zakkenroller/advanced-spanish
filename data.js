@@ -1072,6 +1072,91 @@ const TENSE_INFO = {
   imperfectSubj: { name: 'imperfecto de subjuntivo', en: 'imperfect subjunctive' },
 };
 
+/* Reference cards for each tense — one source of truth that fuels both the
+   💡 hint ladder and the popup opened by clicking a tense name anywhere in
+   a question. `endings` keys into REGULAR_ENDINGS (simple tenses); compound
+   tenses carry a `formula` string instead. `names` lists the strings (Spanish
+   first, English last) that become clickable in question text. */
+const TENSE_REFERENCE = {
+  present: {
+    names: ['presente', 'present'],
+    what: 'What happens now, in general, or as a habit — the default tense.',
+    when: 'Facts, routines, things happening right now. Triggers: ahora, hoy, siempre, normalmente, todos los días (about now).',
+    endings: 'present',
+    irregular: 'Common irregular yo-forms: tengo, hago, pongo, salgo, sé, voy, soy, estoy. Stem-changers: quiero (e→ie), puedo (o→ue), pido (e→i).',
+  },
+  preterite: {
+    names: ['pretérito', 'preterite'],
+    what: 'A completed past action — a photo: the flash freezes one finished moment.',
+    when: 'Single finished events; the actions that move a story forward. Triggers: ayer, anoche, el año pasado, una vez, de repente, entonces.',
+    endings: 'preterite',
+    irregular: 'Big irregulars: ser/ir → fui, estar → estuve, tener → tuve, hacer → hice, poder → pude. Spelling guards in yo: busqué, llegué, empecé.',
+  },
+  imperfect: {
+    names: ['imperfecto', 'imperfect'],
+    what: 'Ongoing or habitual past — a video already rolling in the background.',
+    when: 'Past descriptions, habits, time, age, weather, feelings; “used to” / “was …-ing”. Triggers: siempre, todos los días, mientras, de niño/a, cada verano.',
+    endings: 'imperfect',
+    irregular: 'Only three verbs are irregular: ser (era), ir (iba), ver (veía). Everything else is regular.',
+  },
+  future: {
+    names: ['futuro', 'future'],
+    what: 'What will happen — also educated guesses about the present (Serán las diez ≈ “it must be around ten”).',
+    when: 'Predictions and plans. Triggers: mañana, la próxima semana, el año que viene, dentro de…',
+    endings: 'future',
+    irregular: '12 irregular stems (endings never change): habr-, podr-, querr-, sabr-, cabr-, pondr-, saldr-, tendr-, vendr-, valdr-, dir-, har-.',
+  },
+  conditional: {
+    names: ['condicional', 'conditional'],
+    what: '“Would …” — hypotheticals, polite requests, and guesses about the past.',
+    when: 'Softened wishes (me gustaría…), unreal outcomes (iría si pudiera), politeness (¿podrías…?).',
+    endings: 'conditional',
+    irregular: 'Uses the same 12 irregular stems as the future: tendría, haría, diría, podría…',
+  },
+  presentSubj: {
+    names: ['presente de subjuntivo', 'present subjunctive'],
+    what: 'Not a time — an attitude: wished, doubted, or demanded, not stated as fact.',
+    when: 'After WEIRDO triggers: quiero que, es posible que, no creo que, ojalá, para que; also cuando + a future idea.',
+    endings: 'presentSubj',
+    irregular: 'Endings swap vowels (-ar → -e, -er/-ir → -a). Built on irregular yo-forms: tenga, haga, ponga; plus sea, vaya, esté, sepa, dé.',
+  },
+  imperfectSubj: {
+    names: ['imperfecto de subjuntivo', 'imperfect subjunctive'],
+    what: 'The subjunctive shifted into the past — wishes, doubts, and unreals about back then.',
+    when: 'After past-tense triggers (pidió que…, quería que…), como si…, and si-clauses: si tuviera más tiempo…',
+    endings: 'imperfectSubj',
+    irregular: 'Built on the ellos-preterite stem: tuvieron → tuviera, fueron → fuera, hicieron → hiciera.',
+  },
+  perfect: {
+    names: ['pretérito perfecto', 'perfecto', 'present perfect'],
+    what: 'Past that still touches now: he comido — “I have eaten.”',
+    when: 'Recent or still-relevant past. Triggers: ya, todavía no, alguna vez, este mes (Spain).',
+    formula: 'presente of haber (he, has, ha, hemos, habéis, han) + participle (-ado / -ido)',
+    irregular: 'Irregular participles: hecho, visto, escrito, dicho, puesto, vuelto, abierto, roto.',
+  },
+  pluperfect: {
+    names: ['pluscuamperfecto', 'pluperfect', 'past perfect'],
+    what: 'Done before another past moment: había comido — “I had (already) eaten.”',
+    when: 'The earlier of two past events: cuando llegaste, ya había salido.',
+    formula: 'imperfecto of haber (había, habías, había, habíamos, habíais, habían) + participle (-ado / -ido)',
+    irregular: 'Same irregular participles: hecho, visto, escrito, dicho, puesto, vuelto.',
+  },
+  futurePerfect: {
+    names: ['futuro perfecto', 'future perfect'],
+    what: 'Done before a future moment: habré comido — “I will have eaten.”',
+    when: 'Deadlines (para el lunes lo habré terminado) and guesses about the recent past (habrá llegado ya).',
+    formula: 'futuro of haber (habré, habrás, habrá, habremos, habréis, habrán) + participle (-ado / -ido)',
+    irregular: 'Same irregular participles: hecho, visto, escrito, dicho, puesto, vuelto.',
+  },
+  conditionalPerfect: {
+    names: ['condicional perfecto', 'conditional perfect'],
+    what: '“Would have …”: habría comido — the outcome that never happened.',
+    when: 'Unreal past results: si hubiera estudiado, habría aprobado.',
+    formula: 'condicional of haber (habría, habrías, habría, habríamos, habríais, habrían) + participle (-ado / -ido)',
+    irregular: 'Same irregular participles: hecho, visto, escrito, dicho, puesto, vuelto.',
+  },
+};
+
 // Which tenses each level drills
 const LEVEL_TENSES = {
   a1: ['present'],
@@ -1435,3 +1520,1420 @@ const GEN_SE_PASSIVE = {
   itemsSg: ['fruta', 'pan', 'café', 'ropa usada', 'oro'],
   itemsPl: ['casas', 'coches', 'pisos', 'bicicletas', 'camareros', 'ordenadores'],
 };
+
+/* ============================================================
+   Tense Toolkit — visual references, mnemonics, rules of thumb
+   ============================================================ */
+
+const TOOLKIT_HTML = `
+<section class="tk-section card">
+  <h3>🗺️ The tense timeline</h3>
+  <p>Every tense is a way of placing an action relative to <b>now</b>.
+  A dot is a completed event; a wave is something ongoing or background.</p>
+  <div class="tl">
+    <div class="tl-row"><span class="tl-name">pretérito <span class="lvl-tag">A2</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-dot" style="left:30%"></span></span>
+      <span class="tl-ex">comí — a snapshot: it happened, it's done</span></div>
+    <div class="tl-row"><span class="tl-name">imperfecto <span class="lvl-tag">A2</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-wave" style="left:15%;width:30%"></span></span>
+      <span class="tl-ex">comía — a video rolling in the background</span></div>
+    <div class="tl-row"><span class="tl-name">pluscuamperfecto <span class="lvl-tag">C1</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-dot" style="left:12%"></span><span class="tl-dot faded" style="left:35%"></span></span>
+      <span class="tl-ex">había comido — done <i>before</i> another past moment</span></div>
+    <div class="tl-row"><span class="tl-name">perfecto <span class="lvl-tag">C1</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-span" style="left:35%;width:25%"></span></span>
+      <span class="tl-ex">he comido — past that still touches now</span></div>
+    <div class="tl-row"><span class="tl-name">presente <span class="lvl-tag">A1</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-dot on-now"></span></span>
+      <span class="tl-ex">como — happening now / in general</span></div>
+    <div class="tl-row"><span class="tl-name">futuro <span class="lvl-tag">B1</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-dot" style="left:80%"></span></span>
+      <span class="tl-ex">comeré — will happen</span></div>
+    <div class="tl-row"><span class="tl-name">futuro perfecto <span class="lvl-tag">C1</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-dot" style="left:72%"></span><span class="tl-dot faded" style="left:90%"></span></span>
+      <span class="tl-ex">habré comido — done <i>before</i> a future moment</span></div>
+    <div class="tl-row"><span class="tl-name">condicional <span class="lvl-tag">B1</span></span>
+      <span class="tl-track"><span class="tl-now"></span><span class="tl-dot ghost" style="left:70%"></span></span>
+      <span class="tl-ex">comería — would happen (hypothetical, polite)</span></div>
+    <div class="tl-row"><span class="tl-name">subjuntivo <span class="lvl-tag">B2</span></span>
+      <span class="tl-track tl-mood">not a time — an attitude</span>
+      <span class="tl-ex">coma — wished, doubted, or demanded, not stated as fact</span></div>
+  </div>
+</section>
+
+<section class="tk-section card">
+  <h3>📸 Photo vs. 🎥 video <span class="lvl-tag">A2+</span></h3>
+  <p>The single most useful metaphor for the two past tenses:</p>
+  <ul>
+    <li><b>Pretérito = a photo.</b> A camera flash freezes one finished moment:
+      <i>Ayer <b>llovió</b></i> — it rained, event over, next scene.</li>
+    <li><b>Imperfecto = a video.</b> The camera was already rolling and nobody
+      pressed stop: <i><b>Llovía</b> cuando salí</i> — the rain is scenery,
+      not the event.</li>
+  </ul>
+  <p>Storytelling rule: the <b>preterite moves the plot forward</b>; the
+  <b>imperfect paints the set</b> — descriptions, weather, time, age, feelings,
+  and things that “used to” happen.</p>
+</section>
+
+<section class="tk-section card">
+  <h3>🚦 Trigger words <span class="lvl-tag">A2+</span></h3>
+  <p>Time markers strongly predict the tense. Learn to spot them before you conjugate:</p>
+  <table>
+    <tr><th>If you see…</th><th>Reach for…</th></tr>
+    <tr><td>ayer, anoche, el año pasado, una vez, de repente, entonces</td><td><b>pretérito</b></td></tr>
+    <tr><td>siempre, todos los días, mientras, de niño/a, cada verano, antes, a menudo</td><td><b>imperfecto</b></td></tr>
+    <tr><td>mañana, la próxima semana, el año que viene, dentro de…</td><td><b>futuro</b></td></tr>
+    <tr><td>ya, todavía no, alguna vez, este mes (Spain)</td><td><b>perfecto</b> (he comido)</td></tr>
+    <tr><td>quiero que, es posible que, no creo que, ojalá, para que, cuando (+ future idea)</td><td><b>subjuntivo</b></td></tr>
+  </table>
+  <p class="tk-warn">⚠️ Trigger words are training wheels: real Spanish often gives no
+  marker, and then the <b>verb ending is the only clue</b>. That's what Tense
+  Detective trains.</p>
+</section>
+
+<section class="tk-section card">
+  <h3>🧠 Mnemonics that stick</h3>
+  <p><b>SIMBA</b> — when the <b>pretérito</b> pounces <span class="lvl-tag">A2+</span>:</p>
+  <ul class="tk-acro">
+    <li><b>S</b>ingle completed action — <i>Compré pan.</i></li>
+    <li><b>I</b>nterruption — <i>…cuando <b>sonó</b> el teléfono.</i></li>
+    <li><b>M</b>ain event of the story — <i>Por fin <b>llegó</b>.</i></li>
+    <li><b>B</b>eginning or end of an action — <i><b>Empezó</b> a llover.</i></li>
+    <li><b>A</b>rrivals & departures — <i><b>Salí</b> a las ocho.</i></li>
+  </ul>
+  <p><b>CHEATED</b> — the <b>imperfecto</b> plays the long game <span class="lvl-tag">A2+</span>:</p>
+  <ul class="tk-acro">
+    <li><b>C</b>haracteristics & descriptions — <i>La casa <b>era</b> vieja.</i></li>
+    <li><b>H</b>ealth — <i><b>Estaba</b> enfermo.</i></li>
+    <li><b>E</b>motion — <i><b>Tenía</b> miedo.</i></li>
+    <li><b>A</b>ge — <i><b>Tenía</b> diez años.</i></li>
+    <li><b>T</b>ime & weather — <i><b>Eran</b> las tres. <b>Llovía</b>.</i></li>
+    <li><b>E</b>ndless (habitual) activities — <i><b>Jugaba</b> cada día.</i></li>
+    <li><b>D</b>escription of a scene — <i>Todo <b>estaba</b> tranquilo.</i></li>
+  </ul>
+  <p><b>The Three Amigos</b> <span class="lvl-tag">A2</span> — only <b>three</b> verbs are
+  irregular in the whole imperfect: <b>ser</b> (era), <b>ir</b> (iba), <b>ver</b> (veía).
+  Everything else is regular. Relax.</p>
+  <p><b>DOCTOR / PLACE</b> <span class="lvl-tag">A1</span> — ser vs. estar:</p>
+  <ul class="tk-acro">
+    <li><b>SER = DOCTOR</b>: Description, Occupation, Characteristic, Time, Origin, Relationship</li>
+    <li><b>ESTAR = PLACE</b>: Position, Location, Action (estar + -ndo), Condition, Emotion</li>
+  </ul>
+  <p><b>WEIRDO</b> <span class="lvl-tag">B2</span> — subjunctive triggers: Wishes, Emotions,
+  Impersonal expressions, Recommendations, Doubt/denial, Ojalá.</p>
+</section>
+
+<section class="tk-section card">
+  <h3>⚙️ Pattern hacks <span class="lvl-tag">B1+</span></h3>
+  <p><b>The 12 irregular futures</b> come in three families (conditional uses the same stems):</p>
+  <ul>
+    <li><b>Drop the e</b>: haber→habr-, poder→podr-, querer→querr-, saber→sabr-, caber→cabr-</li>
+    <li><b>Swap in a d</b>: poner→pondr-, salir→saldr-, tener→tendr-, venir→vendr-, valer→valdr-</li>
+    <li><b>The shorties</b>: decir→dir-, hacer→har-</li>
+  </ul>
+  <p><b>Car-Gar-Zar</b> <span class="lvl-tag">A2</span> — preterite <i>yo</i> spelling guards:
+  bus<b>car</b>→bus<b>qué</b>, lle<b>gar</b>→lle<b>gué</b>, empe<b>zar</b>→empe<b>cé</b>.
+  The sound never changes — only the spelling protects it.</p>
+  <p><b>i→y rescue</b> <span class="lvl-tag">A2</span> — vowel-stem -er/-ir verbs in 3rd person
+  preterite: leer→le<b>y</b>ó, oír→o<b>y</b>eron, construir→constru<b>y</b>ó.</p>
+  <p><b>“Would” fork</b> <span class="lvl-tag">B1</span> — English “would” splits two ways:
+  <i>would = used to</i> → <b>imperfecto</b> (<i>íbamos cada verano</i>);
+  <i>would = hypothetical</i> → <b>condicional</b> (<i>iría si pudiera</i>).</p>
+</section>
+
+<section class="tk-section card">
+  <h3>📌 Rules of thumb</h3>
+  <ul>
+    <li>Can you swap in <b>“used to”</b> or <b>“was …-ing”</b>? → imperfecto.</li>
+    <li><b>Time, age, weather</b> in the past? → imperfecto, almost always.</li>
+    <li>A <b>chain of events</b> (“then… then… then…”)? → pretérito for every link.</li>
+    <li><b>Ojalá</b> and <b>para que</b>? → subjunctive, no exceptions.</li>
+    <li><b>Cuando</b> about the future? → subjunctive (<i>cuando llegue</i>);
+        cuando about habit/past fact? → indicative (<i>cuando llegaba</i>).</li>
+    <li>Guessing/probability about <b>now</b>? → future (<i>Serán las diez</i> —
+        “it must be around ten”). About the <b>past</b>? → conditional (<i>Serían las diez</i>).</li>
+    <li>Say new forms <b>out loud</b> — rhythm and stress (habló vs. hablo) carry meaning.</li>
+  </ul>
+</section>`;
+
+/* ============================================================
+   Tense Detective — interpretation exercises (processing
+   instruction): decode meaning from the verb form itself
+   ============================================================ */
+
+const DETECTIVE = {
+  a1: [
+    { t: 'mc', q: '«Comemos a las dos.» Who is eating?', c: ['yo', 'tú', 'nosotros', 'ellos'], a: 2,
+      exp: 'The -emos ending can only be nosotros — no pronoun needed.' },
+    { t: 'mc', q: '«¿Trabajas hoy?» Who is this question about?', c: ['me', 'you (informal)', 'him', 'them'], a: 1,
+      exp: 'The -as ending marks tú: “Are you working today?”' },
+    { t: 'mc', q: '«Viven en Lima.» Who lives in Lima?', c: ['I do', 'you do', 'she does', 'they do'], a: 3,
+      exp: '-en on an -ir verb marks ellos/ustedes: “they live”.' },
+    { t: 'mc', q: '«Hablo poco.» Who speaks little?', c: ['I do', 'you do', 'he does', 'we do'], a: 0,
+      exp: 'The -o ending is always yo in the present.' },
+    { t: 'mc', q: '«Pedro es aburrido» vs. «Pedro está aburrido» —', c: ['both mean he is bored', 'both mean he is boring', 'es = boring (trait), está = bored (state)', 'es = bored, está = boring'], a: 2,
+      exp: 'ser = permanent trait (DOCTOR); estar = current condition (PLACE).' },
+    { t: 'mc', q: '«La sopa está fría.» Why estar?', c: ['soups are feminine', 'it describes its current condition', 'it is an opinion', 'fría requires it'], a: 1,
+      exp: 'estar for conditions that can change — the soup could be reheated (PLACE: Condition).' },
+    { t: 'mc', q: '«Somos de Chile.» Why ser?', c: ['location', 'origin', 'emotion', 'action in progress'], a: 1,
+      exp: 'Origin is the O in DOCTOR: ser + de + place.' },
+    { t: 'mc', q: '«Estamos en casa.» Why estar?', c: ['location', 'occupation', 'time', 'relationship'], a: 0,
+      exp: 'Location is the L in PLACE: estar tells you where.' },
+  ],
+  a2: [
+    { t: 'mc', q: 'You spot «anoche» in a sentence about the past. Which tense is it calling for?', c: ['imperfecto', 'pretérito', 'presente', 'either, equally'], a: 1,
+      exp: '“Last night” frames a single completed occasion → pretérito.' },
+    { t: 'mc', q: '«Todos los días» (talking about childhood) points to…', c: ['pretérito', 'imperfecto', 'futuro', 'presente'], a: 1,
+      exp: 'Habitual repetition → imperfecto (CHEATED: Endless activities).' },
+    { t: 'mc', q: '«Llovía.» What does the speaker present?', c: ['rain as a finished event', 'rain as background scenery', 'a forecast', 'a command'], a: 1,
+      exp: 'Imperfect = the video camera rolling: rain in progress, no endpoints.' },
+    { t: 'mc', q: '«Llovió.» And now?', c: ['rain as a finished event', 'rain as background', 'rain happening now', 'a wish for rain'], a: 0,
+      exp: 'Preterite = the photo: it rained, complete, done.' },
+    { t: 'mc', q: '«De niño jugaba en la calle.» Which CHEATED letter justifies the imperfect?', c: ['Health', 'Age', 'Endless (habitual) activities', 'Time'], a: 2,
+      exp: 'A repeated childhood habit → Endless activities.' },
+    { t: 'mc', q: '«Ayer fui al mercado.» Why preterite?', c: ['description of a scene', 'a single completed action', 'an emotion', 'the weather'], a: 1,
+      exp: 'SIMBA: Single completed action — one trip, over and done.' },
+    { t: 'mc', q: '«Mientras cocinaba, sonó el teléfono.» Which action interrupted the other?', c: ['cocinaba interrupted sonó', 'sonó interrupted cocinaba', 'they happened one after another', 'neither happened'], a: 1,
+      exp: 'The imperfect (cocinaba) was rolling; the preterite (sonó) burst in. SIMBA: Interruption.' },
+    { t: 'mc', q: 'No time markers, just: «Estudiaba medicina.» Most likely meaning?', c: ['she studied it once', 'she was studying it / used to study it', 'she will study it', 'she just finished it'], a: 1,
+      exp: 'With no marker, the -aba ending alone signals ongoing/habitual past.' },
+  ],
+  b1: [
+    { t: 'mc', q: '«El año que viene» sets you up for…', c: ['pretérito', 'imperfecto', 'futuro', 'perfecto'], a: 2,
+      exp: '“Next year” → future: el año que viene viajaré.' },
+    { t: 'mc', q: '«Serían las diez cuando llegó.» The conditional here expresses…', c: ['a wish', 'probability about the past', 'a polite request', 'a future plan'], a: 1,
+      exp: 'Conditional of conjecture: “it must have been around ten.”' },
+    { t: 'mc', q: '«Me gustaría hablar con usted.» The conditional makes this…', c: ['a demand', 'a polite wish', 'a past habit', 'a certainty'], a: 1,
+      exp: 'Conditional softens requests: “I would like to…”.' },
+    { t: 'mc', q: '«Iba a llamarte.» What happened to the call?', c: ['it already happened', 'it was planned, but something got in the way', 'it will definitely happen', 'the speaker refuses to call'], a: 1,
+      exp: '“iba a + infinitive” = was going to — a plan usually left unrealized.' },
+    { t: 'mc', q: '«De repente» inside a past story announces…', c: ['background description', 'a preterite plot twist', 'a habit', 'the imperfecto'], a: 1,
+      exp: '“Suddenly” = an interrupting event → pretérito.' },
+    { t: 'mc', q: '«En aquella época» leans toward…', c: ['pretérito', 'imperfecto', 'futuro', 'condicional'], a: 1,
+      exp: '“Back in those days” frames ongoing circumstances → imperfecto.' },
+    { t: 'mc', q: '«Habrá unas veinte personas.» The future tense here means…', c: ['there will be 20 later', 'there are probably about 20 right now', 'there were 20', 'an order to invite 20'], a: 1,
+      exp: 'Future of probability: a guess about the present.' },
+    { t: 'mc', q: '«Cuando era estudiante, salía cada noche.» The two imperfects paint…', c: ['two single events', 'a chain of plot points', 'a habitual life period', 'the future'], a: 2,
+      exp: 'Both verbs describe how life used to be — pure background, no plot.' },
+  ],
+  b2: [
+    { t: 'mc', q: '«Quiero que…» — what must come next?', c: ['indicative', 'subjunctive', 'infinitive always', 'preterite'], a: 1,
+      exp: 'Wishes imposed on someone else (WEIRDO: W) → subjunctive: quiero que vengas.' },
+    { t: 'mc', q: '«Creo que…» — and here?', c: ['subjunctive', 'indicative', 'imperative', 'conditional only'], a: 1,
+      exp: 'Affirmative belief = asserted as fact → indicative. (No creo que → subjunctive!)' },
+    { t: 'mc', q: '«No creo que…» flips to…', c: ['indicative', 'subjunctive', 'future', 'preterite'], a: 1,
+      exp: 'Doubt/denial (WEIRDO: D) → subjunctive: no creo que sea verdad.' },
+    { t: 'mc', q: '«Es obvio que…» takes…', c: ['subjunctive — impersonal expression', 'indicative — it asserts certainty', 'either', 'imperative'], a: 1,
+      exp: 'Impersonal expressions of certainty (es obvio/cierto/verdad que) keep the indicative.' },
+    { t: 'mc', q: '«Es posible que…» takes…', c: ['indicative', 'subjunctive', 'future only', 'preterite'], a: 1,
+      exp: 'Possibility is not asserted fact → subjunctive: es posible que llueva.' },
+    { t: 'mc', q: '«Cuando llegue» vs. «cuando llega» — llegue means…', c: ['a habit', 'a future, not-yet-real arrival', 'a past arrival', 'a mistake'], a: 1,
+      exp: 'cuando + subjunctive = pending future event; cuando + indicative = habit or known fact.' },
+    { t: 'mc', q: '«Aunque está lloviendo, salgo.» The indicative está tells you…', c: ['the speaker doubts the rain', 'the rain is a known fact', 'the rain is hypothetical', 'nothing'], a: 1,
+      exp: 'aunque + indicative = “even though (it IS raining)”; + subjunctive = “even if (it may rain)”.' },
+    { t: 'mc', q: '«Ojalá» is followed by the subjunctive…', c: ['sometimes', 'only in questions', 'always', 'never'], a: 2,
+      exp: 'ojalá (from Arabic “God willing”) always takes the subjunctive.' },
+  ],
+  c1: [
+    { t: 'mc', q: '«Cuando llegué, ya se habían ido.» Which happened first?', c: ['my arrival', 'their leaving', 'simultaneous', 'cannot tell'], a: 1,
+      exp: 'Pluperfect (habían ido) marks the action completed before the other past action.' },
+    { t: 'mc', q: '«Habré terminado para el viernes.» The report will be done…', c: ['on Friday exactly', 'at some point before Friday', 'after Friday', 'it was done last Friday'], a: 1,
+      exp: 'Future perfect = completed before a future deadline.' },
+    { t: 'mc', q: '«Habría ido, pero tenía trabajo.» Did the person go?', c: ['yes', 'no', 'maybe', 'they will go'], a: 1,
+      exp: 'Conditional perfect = unreal past: “I would have gone (but didn’t).”' },
+    { t: 'mc', q: '«Si tuviera dinero…» — how much money does the speaker have?', c: ['plenty', 'not enough — this is a present unreality', 'they had money before', 'unknown, it is a real possibility'], a: 1,
+      exp: 'si + imperfect subjunctive = contrary to present fact.' },
+    { t: 'mc', q: '«Si hubiera sabido…» regrets something in…', c: ['the present', 'the future', 'the past', 'a habit'], a: 2,
+      exp: 'si + pluperfect subjunctive = a past that cannot be changed.' },
+    { t: 'mc', q: '«Llevaba tres años viviendo allí.» At that past moment, the living situation…', c: ['had just ended', 'had been going on for three years', 'would start in three years', 'lasted exactly three more years'], a: 1,
+      exp: 'llevar + time + gerund = duration up to the reference point.' },
+    { t: 'mc', q: '«Acababa de salir cuando llamaste.» When did they leave?', c: ['long before the call', 'moments before the call', 'during the call', 'after the call'], a: 1,
+      exp: 'acabar de (imperfect) + infinitive = “had just…”.' },
+    { t: 'mc', q: '«Estará durmiendo.» The speaker is…', c: ['ordering someone to sleep', 'guessing what is happening right now', 'narrating the past', 'making a promise'], a: 1,
+      exp: 'Future + gerund = live conjecture: “he’s probably sleeping.”' },
+  ],
+};
+
+/* ============================================================
+   Story Mode — cloze narratives (tenses in real context)
+   ============================================================ */
+
+const CLOZE_STORIES = {
+  a1: [{
+    title: 'Un día normal',
+    note: 'Fill in the present tense. Watch who does each action!',
+    text: 'Me llamo Sofía y {1} en Sevilla. Todas las mañanas {2} café con leche y mi hermano {3} el desayuno. Nosotros {4} juntos a las dos de la tarde. Por la noche, mis padres {5} la televisión, pero yo {6} con mis amigos en el parque. Mi familia {7} muy simpática y nuestra casa {8} cerca del centro.',
+    blanks: [
+      { hint: 'vivir, yo', a: ['vivo'], exp: 'yo + -ir → vivo' },
+      { hint: 'beber, yo', a: ['bebo'], exp: 'yo + -er → bebo' },
+      { hint: 'preparar, él', a: ['prepara'], exp: 'él + -ar → prepara' },
+      { hint: 'comer, nosotros', a: ['comemos'], exp: 'nosotros + -er → comemos' },
+      { hint: 'ver, ellos', a: ['ven'], exp: 'ellos + ver → ven' },
+      { hint: 'hablar, yo', a: ['hablo'], exp: 'yo + -ar → hablo' },
+      { hint: 'ser', a: ['es'], exp: 'A lasting trait of the family → ser: es simpática' },
+      { hint: 'estar', a: ['está'], exp: 'Location → estar: está cerca' },
+    ],
+  }],
+  a2: [{
+    title: 'El sábado pasado',
+    note: 'A finished weekend story — mostly preterite, with imperfect for the scenery.',
+    text: 'El sábado pasado {1} un día increíble. Por la mañana {2} al mercado y {3} fruta fresca. {4} sol y no {5} frío. Al mediodía, mi amiga Carmen me {6} por teléfono. Nosotras {7} en un café del centro y {8} durante horas.',
+    blanks: [
+      { hint: 'ser', a: ['fue'], exp: 'The day, viewed whole and finished → preterite: fue' },
+      { hint: 'ir, yo', a: ['fui'], exp: 'One completed trip → fui (ir is irregular)' },
+      { hint: 'comprar, yo', a: ['compré', 'compre'], exp: 'Single completed purchase → compré' },
+      { hint: 'hacer — weather', a: ['hacía', 'hacia'], exp: 'Weather as background → imperfect: hacía sol' },
+      { hint: 'hacer — weather', a: ['hacía', 'hacia'], exp: 'Still scenery → hacía frío (negated)' },
+      { hint: 'llamar', a: ['llamó', 'llamo'], exp: 'One phone call, completed → llamó' },
+      { hint: 'quedar, nosotras', a: ['quedamos'], exp: 'quedar = to meet up: quedamos en un café' },
+      { hint: 'hablar, nosotras', a: ['hablamos'], exp: 'The talking, viewed as a completed block → hablamos' },
+    ],
+  }],
+  b1: [{
+    title: 'Una noche extraña',
+    note: 'The classic narrative dance: imperfect sets the scene, preterite moves the plot.',
+    text: '{1} medianoche y toda la casa {2} en silencio. Yo {3} tranquilamente cuando, de repente, {4} un ruido en la cocina. Me {5} despacio y {6} la puerta. ¡{7} solo el gato! Al día siguiente, decidí que {8} una cámara para la cocina.',
+    blanks: [
+      { hint: 'ser — time', a: ['era'], exp: 'Time in the past → imperfect: era medianoche (CHEATED: Time)' },
+      { hint: 'estar', a: ['estaba'], exp: 'Scene description → imperfect: estaba en silencio' },
+      { hint: 'dormir, yo', a: ['dormía', 'dormia'], exp: 'Action in progress, camera rolling → dormía' },
+      { hint: 'oír, yo', a: ['oí', 'oi'], exp: 'The interruption! → preterite: oí (SIMBA: Interruption)' },
+      { hint: 'levantar, yo (reflexive already given)', a: ['levanté', 'levante'], exp: 'Plot moves forward → me levanté' },
+      { hint: 'abrir, yo', a: ['abrí', 'abri'], exp: 'Next plot point → abrí' },
+      { hint: 'ser', a: ['Era', 'era'], exp: 'Description of what it turned out to be → era el gato' },
+      { hint: 'comprar, yo — condicional', a: ['compraría', 'compraria'], exp: 'Future-in-the-past → conditional: decidí que compraría' },
+    ],
+  }],
+  b2: [{
+    title: 'Consejos para tu viaje',
+    note: 'Advice is subjunctive territory — but watch for the facts that stay indicative.',
+    text: 'Sé que {1} visitar Granada este verano. Te recomiendo que {2} la Alhambra por la mañana y que {3} entradas con antelación. Es importante que {4} zapatos cómodos. Cuando {5} a la ciudad, llámame y te doy más ideas. No creo que {6} más de tres días para verlo todo, pero ojalá {7} buen tiempo. ¡Espero que lo {8} genial!',
+    blanks: [
+      { hint: 'querer, tú', a: ['quieres'], exp: '“Sé que” asserts a fact → indicative: quieres' },
+      { hint: 'visitar, tú', a: ['visites'], exp: 'Recommendation (WEIRDO: R) → subjunctive: visites' },
+      { hint: 'comprar, tú', a: ['compres'], exp: 'Still under “te recomiendo que” → compres' },
+      { hint: 'llevar, tú', a: ['lleves'], exp: 'Es importante que (Impersonal) → subjunctive: lleves' },
+      { hint: 'llegar, tú', a: ['llegues'], exp: 'cuando + future idea → subjunctive: llegues (-gu- keeps the hard g)' },
+      { hint: 'necesitar, tú', a: ['necesites'], exp: 'No creo que (Doubt) → subjunctive: necesites' },
+      { hint: 'hacer — weather', a: ['haga'], exp: 'ojalá always → subjunctive: haga' },
+      { hint: 'pasar, tú', a: ['pases'], exp: 'Esperar que (Emotion/wish) → subjunctive: pases' },
+    ],
+  }],
+  c1: [{
+    title: 'La entrevista',
+    note: 'Layered past: pluperfect, conditional perfect, and the imperfect subjunctive.',
+    text: 'Cuando llegué a la entrevista, ya {1} mi presentación tres veces. La directora me saludó como si me {2} de toda la vida. Me pidió que le {3} sobre mi experiencia. Si {4} más tiempo, le habría contado todos los detalles. Al salir, pensé: si no {5} tan nervioso, la reunión {6} mejor. Para el viernes ya me {7} — o eso esperaba. Dudaba que {8} otros candidatos con mi perfil.',
+    blanks: [
+      { hint: 'practicar, yo — pluscuamperfecto', a: ['había practicado', 'habia practicado'], exp: 'Done before arriving → pluperfect: había practicado' },
+      { hint: 'conocer — imperfecto de subjuntivo', a: ['conociera'], exp: 'como si + imperfect subjunctive, always: conociera' },
+      { hint: 'hablar — imperfecto de subjuntivo', a: ['hablara'], exp: 'Past request → sequence of tenses: pidió que hablara' },
+      { hint: 'tener, yo — imperfecto de subjuntivo', a: ['hubiera tenido', 'tuviera'], exp: 'Unreal condition: si hubiera tenido (or tuviera) más tiempo' },
+      { hint: 'estar, yo — imperfecto de subjuntivo', a: ['hubiera estado', 'estuviera'], exp: 'Unreal: si no hubiera estado / no estuviera tan nervioso' },
+      { hint: 'salir — condicional perfecto', a: ['habría salido', 'habria salido'], exp: 'Unreal past result → conditional perfect: habría salido mejor' },
+      { hint: 'responder, ellos — futuro perfecto', a: ['habrían respondido', 'habrian respondido'], exp: 'Conjecture about a future-in-the-past deadline → habrían respondido' },
+      { hint: 'haber — imperfecto de subjuntivo', a: ['hubiera'], exp: 'Dudaba que + imperfect subjunctive: hubiera otros candidatos' },
+    ],
+  }],
+};
+
+/* ============================================================
+   Sentence-frame drill data — every generated conjugation lives
+   inside a real sentence with a level-appropriate trigger word
+   ============================================================ */
+
+// Complements that read naturally with each verb in any tense
+const VERB_COMPS = {
+  hablar:   ['con mi madre', 'por teléfono', 'de política'],
+  trabajar: ['en la oficina', 'mucho', 'en el jardín'],
+  estudiar: ['español', 'para el examen', 'medicina'],
+  comprar:  ['fruta en el mercado', 'un regalo', 'pan'],
+  cocinar:  ['la cena', 'arroz con pollo', 'para toda la familia'],
+  comer:    ['tacos', 'en casa', 'demasiado'],
+  aprender: ['mucho', 'algo nuevo', 'los verbos'],
+  beber:    ['café', 'agua', 'jugo de naranja'],
+  vender:   ['fruta', 'la casa', 'de todo'],
+  vivir:    ['en Sevilla', 'cerca del centro', 'con mi familia'],
+  escribir: ['una carta', 'correos electrónicos', 'en un diario'],
+  abrir:    ['la tienda', 'las ventanas', 'la puerta'],
+  escuchar: ['música', 'las noticias', 'con atención'],
+  bailar:   ['salsa', 'en las fiestas', 'muy bien'],
+  cantar:   ['en la ducha', 'canciones viejas', 'muy mal'],
+  caminar:  ['por el parque', 'al trabajo', 'mucho'],
+  viajar:   ['a México', 'en tren', 'por Sudamérica'],
+  cenar:    ['con amigos', 'tarde', 'en un restaurante'],
+  correr:   ['por la playa', 'cinco kilómetros', 'muy rápido'],
+  subir:    ['la montaña', 'las escaleras', 'al autobús'],
+  recibir:  ['muchas cartas', 'visitas', 'buenas noticias'],
+  decidir:  ['rápidamente', 'sin ayuda', 'entre los dos'],
+  ser:      ['muy paciente', 'puntual', 'optimista'],
+  estar:    ['en casa', 'muy contento', 'en la reunión'],
+  ir:       ['al mercado', 'a la playa', 'al trabajo'],
+  tener:    ['mucho trabajo', 'suerte', 'tiempo libre'],
+  hacer:    ['ejercicio', 'la tarea', 'un pastel'],
+  poder:    ['descansar', 'ayudar', 'venir'],
+  querer:   ['aprender más', 'viajar', 'un café'],
+  venir:    ['a la fiesta', 'temprano', 'con nosotros'],
+  decir:    ['la verdad', 'algo importante', 'que sí'],
+  saber:    ['la respuesta', 'cocinar', 'la verdad'],
+  poner:    ['la mesa', 'música', 'todo en orden'],
+  salir:    ['temprano', 'con amigos', 'de la oficina'],
+};
+
+// Sentence frames per tense; each carries a trigger phrase so the drill
+// quietly reinforces the trigger-word → tense associations from the Toolkit
+const DRILL_FRAMES = {
+  present: [
+    { pre: 'Normalmente,', post: '.' },
+    { pre: 'Todos los días,', post: '.' },
+    { pre: 'Hoy', post: '.' },
+    { pre: 'Generalmente,', post: '.' },
+  ],
+  preterite: [
+    { pre: 'Ayer', post: '.' },
+    { pre: 'Anoche', post: '.' },
+    { pre: 'El lunes pasado,', post: '.' },
+    { pre: 'La semana pasada,', post: '.' },
+  ],
+  imperfect: [
+    { pre: 'De niño,', post: '.' },
+    { pre: 'Antes,', post: '.' },
+    { pre: 'En aquella época,', post: '.' },
+    { pre: 'Todos los veranos,', post: '.' },
+  ],
+  future: [
+    { pre: 'Mañana', post: '.' },
+    { pre: 'El año que viene,', post: '.' },
+    { pre: 'Pronto,', post: '.' },
+    { pre: 'La próxima semana,', post: '.' },
+  ],
+  conditional: [
+    { pre: 'Con más tiempo,', post: '.' },
+    { pre: 'En un mundo ideal,', post: '.' },
+    { pre: 'De ser posible,', post: '.' },
+  ],
+  presentSubj: [
+    { pre: 'Es importante que', post: '.' },
+    { pre: 'Espero que', post: '.' },
+    { pre: 'Ojalá que', post: '.' },
+    { pre: 'Es posible que', post: '.' },
+  ],
+  imperfectSubj: [
+    { pre: 'Si', post: ', todo sería más fácil.' },
+    { pre: 'Si', post: ', sería maravilloso.' },
+    { pre: 'Mi madre quería que', post: '.' },
+  ],
+};
+
+// Varied display names per grammatical person (answer is the same)
+const PERSON_DISPLAY = [
+  ['yo'],
+  ['tú'],
+  ['él', 'ella', 'usted'],
+  ['nosotros', 'nosotras'],
+  ['vosotros', 'vosotras'],
+  ['ellos', 'ellas', 'ustedes'],
+];
+
+/* ============================================================
+   Detective expansion — 12 more interpretation questions per level
+   ============================================================ */
+
+DETECTIVE.a1.push(
+  { t: 'mc', q: '«¿Comes carne?» Who is this question about?', c: ['me', 'you (informal)', 'her', 'them'], a: 1,
+    exp: 'The -es ending on an -er verb marks tú: “Do you eat meat?”' },
+  { t: 'mc', q: '«Escribimos correos todos los días.» Who writes?', c: ['I do', 'you all do', 'we do', 'they do'], a: 2,
+    exp: '-imos on an -ir verb = nosotros: “we write”.' },
+  { t: 'mc', q: '«Mi hermana trabaja en Napa.» The -a ending tells you the subject is…', c: ['yo', 'tú', 'one person (she)', 'many people'], a: 2,
+    exp: 'Third person singular: mi hermana = ella → trabaja.' },
+  { t: 'mc', q: '«Estoy cansado.» Is this permanent or temporary?', c: ['permanent — it uses ser', 'temporary — estar marks a current state', 'it is about location', 'it is a command'], a: 1,
+    exp: 'estar + condition = how you are right now (PLACE: Condition).' },
+  { t: 'mc', q: '«Es médico.» Why ser?', c: ['location', 'emotion', 'occupation', 'action in progress'], a: 2,
+    exp: 'Occupation is the O in DOCTOR: ser + profession, no article.' },
+  { t: 'mc', q: '«Están en la oficina.» Why estar?', c: ['description', 'origin', 'time', 'location'], a: 3,
+    exp: 'Location → estar (PLACE: Location). And -án marks ellos/ustedes.' },
+  { t: 'mc', q: '«Eres muy alta.» Why ser?', c: ['a lasting characteristic', 'a temporary state', 'an action', 'a location'], a: 0,
+    exp: 'Physical characteristics → ser (DOCTOR: Characteristic).' },
+  { t: 'mc', q: '«¿Estás listo?» vs. «¿Eres listo?» —', c: ['both mean “are you ready?”', 'estás = ready (now), eres = clever (trait)', 'estás = clever, eres = ready', 'both mean “are you clever?”'], a: 1,
+    exp: 'Classic pair: estar listo = ready; ser listo = smart.' },
+  { t: 'mc', q: '«Bailan salsa.» Who dances?', c: ['I do', 'you (one person)', 'we do', 'they do'], a: 3,
+    exp: '-an = ellos/ellas/ustedes: “they dance salsa”.' },
+  { t: 'mc', q: '«Vivo con mi familia.» Who lives with the family?', c: ['I do', 'you do', 'she does', 'we do'], a: 0,
+    exp: 'The -o ending is always yo in the present.' },
+  { t: 'mc', q: '«La fiesta es en mi casa.» Why ser for a location?!', c: ['it is a mistake', 'events use ser for where they take place', 'fiesta is feminine', 'casa requires ser'], a: 1,
+    exp: 'Surprise exception: events (party, meeting, concert) use ser: la reunión es en la sala.' },
+  { t: 'mc', q: '«Somos estudiantes.» Who are students?', c: ['I am', 'you all are', 'we are', 'they are'], a: 2,
+    exp: 'somos = nosotros form of ser: “we are students”.' },
+);
+
+DETECTIVE.a2.push(
+  { t: 'mc', q: '«Una vez» (once) points to…', c: ['imperfecto', 'pretérito', 'presente', 'futuro'], a: 1,
+    exp: 'A counted occurrence → pretérito (SIMBA: Single action).' },
+  { t: 'mc', q: '«Siempre» in a childhood memory points to…', c: ['pretérito', 'imperfecto', 'futuro', 'presente'], a: 1,
+    exp: '“Always” = habitual → imperfecto.' },
+  { t: 'mc', q: '«Tuve miedo» vs. «Tenía miedo» —', c: ['identical meaning', 'tuve = fear hit me (onset), tenía = I was afraid (state)', 'tuve = ongoing, tenía = sudden', 'both are future'], a: 1,
+    exp: 'Preterite on a state verb often marks its beginning: I got scared vs. I was scared.' },
+  { t: 'mc', q: '«Conocí a María en 2020.» Here conocer means…', c: ['I knew her', 'I met her (for the first time)', 'I recognized her', 'I visited her'], a: 1,
+    exp: 'In the preterite, conocer = to meet: the moment knowing began.' },
+  { t: 'mc', q: '«Sabía la respuesta» vs. «Supe la respuesta» —', c: ['knew it / found it out', 'found it out / knew it', 'both mean guessed', 'both mean forgot'], a: 0,
+    exp: 'Imperfect saber = knew (state); preterite supe = found out (the moment of learning).' },
+  { t: 'mc', q: '«El lunes pasado» calls for…', c: ['imperfecto', 'presente', 'pretérito', 'futuro'], a: 2,
+    exp: 'A specific finished occasion → pretérito.' },
+  { t: 'mc', q: '«Cada domingo íbamos a la playa.» The imperfect paints this as…', c: ['one specific Sunday', 'a habit, repeated over time', 'a future plan', 'a command'], a: 1,
+    exp: 'cada domingo + imperfect = every Sunday we would go (habitual).' },
+  { t: 'mc', q: '«De repente, empezó a llover.» Which SIMBA letter is empezó?', c: ['Single action', 'Interruption', 'Main event', 'Beginning of an action'], a: 3,
+    exp: 'empezar in the preterite marks the Beginning: the rain started.' },
+  { t: 'mc', q: '«Eran las cinco cuando llegamos.» Why is eran imperfect?', c: ['it is wrong, should be fueron', 'time in the past always takes the imperfect', 'llegar requires it', 'because of cuando'], a: 1,
+    exp: 'CHEATED: Time — clock time in the past is always imperfect.' },
+  { t: 'mc', q: '«Trabajé en la vendimia dos meses.» Why preterite for something that lasted?', c: ['it should be imperfect', 'the two months are viewed as a closed, completed block', 'trabajar is irregular', 'vendimia requires it'], a: 1,
+    exp: 'Duration with clear boundaries → preterite: the period is over and measured.' },
+  { t: 'mc', q: '«Mientras» usually announces…', c: ['a completed chain', 'an ongoing background action', 'the future', 'a command'], a: 1,
+    exp: 'mientras = while → the rolling-camera imperfect (often then interrupted).' },
+  { t: 'mc', q: '«Quería abrir la puerta» vs. «Quise abrir la puerta» —', c: ['wanted to / tried to', 'tried to / wanted to', 'both mean refused', 'both mean managed'], a: 0,
+    exp: 'Imperfect querer = wanted (state); preterite quise = made an actual attempt.' },
+);
+
+DETECTIVE.b1.push(
+  { t: 'mc', q: '«Dentro de dos años» sets up…', c: ['pretérito', 'imperfecto', 'futuro', 'presente perfecto'], a: 2,
+    exp: '“Within two years” → future: dentro de dos años terminaré.' },
+  { t: 'mc', q: '«Dijo que vendría.» The conditional here is…', c: ['a polite request', 'the future seen from the past', 'a habit', 'a doubt about now'], a: 1,
+    exp: 'Future-of-the-past: “she said she would come.”' },
+  { t: 'mc', q: '«Deberías descansar.» The conditional makes this…', c: ['an order', 'soft, tactful advice', 'a past habit', 'a fact'], a: 1,
+    exp: 'deberías = “you should” — advice with the edges sanded off.' },
+  { t: 'mc', q: '«El tren sale a las ocho.» Present tense, but when does the train leave?', c: ['right now only', 'in the future — schedules use the present', 'in the past', 'never'], a: 1,
+    exp: 'Timetables and fixed schedules use the present with future meaning.' },
+  { t: 'mc', q: '«Voy a empezar mañana.» This ir a + infinitive construction is…', c: ['literal walking', 'the everyday near future (“going to”)', 'past tense', 'subjunctive'], a: 1,
+    exp: 'ir a + infinitive = the most common way to talk about the near future in speech.' },
+  { t: 'mc', q: '«¿Podrías ayudarme?» Why conditional?', c: ['past ability', 'politeness — a softened request', 'certainty', 'reported speech'], a: 1,
+    exp: '“Could you help me?” — the conditional of courtesy.' },
+  { t: 'mc', q: '«Cuando era joven, nadaba cada día.» Two imperfects mean…', c: ['two single events', 'background habit inside a life period', 'an interruption', 'future plans'], a: 1,
+    exp: 'Both verbs describe how life used to be — no plot points, all scenery.' },
+  { t: 'mc', q: '«Llegué, comí y salí.» Why is everything preterite?', c: ['it sounds better', 'a chain of completed events moves the story forward', 'the verbs are irregular', 'it is a habit'], a: 1,
+    exp: 'Sequenced plot points (“then… then… then”) → preterite for every link.' },
+  { t: 'mc', q: '«Hacía sol cuando salimos.» The weather is…', c: ['the main event', 'background scenery around the preterite event', 'a future forecast', 'a wish'], a: 1,
+    exp: 'Weather sets the scene (imperfect); salimos is the plot (preterite).' },
+  { t: 'mc', q: '«Ya no como carne.» “Ya no” means…', c: ['not yet', 'no longer', 'never', 'still'], a: 1,
+    exp: 'ya no = no longer; todavía no = not yet. A classic pair worth locking in.' },
+  { t: 'mc', q: '«Estará en una reunión.» The future tense expresses…', c: ['a scheduled meeting tomorrow', 'a guess about right now (“she is probably in a meeting”)', 'an order', 'a past event'], a: 1,
+    exp: 'Future of probability: conjecture about the present.' },
+  { t: 'mc', q: '«Serían las once cuando volvió.» The conditional expresses…', c: ['a wish', 'a guess about a past time (“it must have been around eleven”)', 'a plan', 'politeness'], a: 1,
+    exp: 'Conditional of conjecture = probability about the past.' },
+);
+
+DETECTIVE.b2.push(
+  { t: 'mc', q: '«Dudo que…» must be followed by…', c: ['indicative', 'subjunctive', 'infinitive only', 'future'], a: 1,
+    exp: 'Doubt (WEIRDO: D) → subjunctive: dudo que sea verdad.' },
+  { t: 'mc', q: '«Es verdad que…» takes…', c: ['subjunctive — impersonal expression', 'indicative — it asserts truth', 'either, same meaning', 'imperative'], a: 1,
+    exp: 'Expressions of truth/certainty keep the indicative. Negate them (no es verdad que) and the subjunctive returns.' },
+  { t: 'mc', q: '«Para que» (so that) is followed by the subjunctive…', c: ['only in questions', 'always', 'never', 'only in the past'], a: 1,
+    exp: 'para que always takes the subjunctive: te lo explico para que lo entiendas.' },
+  { t: 'mc', q: '«Aunque llueva, iremos.» The subjunctive llueva means…', c: ['it is definitely raining', 'even IF it rains (hypothetical)', 'it rained yesterday', 'a command to rain'], a: 1,
+    exp: 'aunque + subjunctive = even if (unknown); aunque + indicative = even though (known fact).' },
+  { t: 'mc', q: '«Busco un empleado que hable español.» The subjunctive hable signals…', c: ['a specific person I have in mind', 'any such person — they may not even exist', 'a past employee', 'an order'], a: 1,
+    exp: 'Nonspecific antecedent → subjunctive. Compare: Conozco a un empleado que HABLA español (specific person).' },
+  { t: 'mc', q: '«Conozco a un empleado que habla español.» Indicative because…', c: ['conocer requires it', 'the person is real and specific', 'español is masculine', 'it is a question'], a: 1,
+    exp: 'A real, identified antecedent takes the indicative.' },
+  { t: 'mc', q: '«Tal vez venga» vs. «Tal vez viene» —', c: ['only the first is grammatical', 'both work; the subjunctive adds more doubt', 'only the second is grammatical', 'they refer to different people'], a: 1,
+    exp: 'With tal vez/quizás both moods are possible — the subjunctive dials the uncertainty up.' },
+  { t: 'mc', q: '«¡No te preocupes!» The verb form is…', c: ['present indicative', 'the subjunctive, as in all negative commands', 'the infinitive', 'the future'], a: 1,
+    exp: 'Negative commands always borrow the subjunctive: no te preocupes, no hables.' },
+  { t: 'mc', q: '«Quizás sea mejor así.» The speaker is…', c: ['certain', 'genuinely unsure — sea marks the doubt', 'quoting someone', 'giving an order'], a: 1,
+    exp: 'quizás + subjunctive = maybe, and I really do not know.' },
+  { t: 'mc', q: '«Antes de que» is followed by the subjunctive…', c: ['always', 'only for the future', 'never', 'only in Spain'], a: 0,
+    exp: 'antes de que always takes the subjunctive: sal antes de que llueva.' },
+  { t: 'mc', q: '«Te llamo después de que termine la reunión.» Why subjunctive?', c: ['después always requires it', 'the meeting has not ended yet — it is pending', 'llamar demands it', 'it should be indicative'], a: 1,
+    exp: 'después de que + pending/future event → subjunctive; a completed past event would take the indicative.' },
+  { t: 'mc', q: '«Me alegro de que estés aquí.» Why estés?', c: ['location requires subjunctive', 'emotion about a fact still takes the subjunctive', 'estar is irregular', 'it is a command'], a: 1,
+    exp: 'WEIRDO: Emotions — even true facts take the subjunctive after emotion verbs.' },
+);
+
+DETECTIVE.c1.push(
+  { t: 'mc', q: '«Habrá salido.» This future perfect expresses…', c: ['he will leave tomorrow', 'he has probably left (conjecture)', 'he left long ago, certainly', 'an order to leave'], a: 1,
+    exp: 'Future perfect of probability: “he must have left.”' },
+  { t: 'mc', q: '«Debería haber llamado.» The speaker…', c: ['will call', 'is calling now', 'regrets not calling', 'forbids calling'], a: 2,
+    exp: 'deber (conditional) + haber + participle = should have — the grammar of regret.' },
+  { t: 'mc', q: '«Llevo dos años estudiando español.» The studying…', c: ['ended two years ago', 'started two years ago and continues now', 'will start in two years', 'lasted exactly two years'], a: 1,
+    exp: 'llevar + time + gerund = have been …ing (duration up to the present).' },
+  { t: 'mc', q: '«Acabo de llegar.» When did the arrival happen?', c: ['moments ago', 'yesterday', 'it is about to happen', 'habitually'], a: 0,
+    exp: 'acabar de + infinitive (present) = to have just done something.' },
+  { t: 'mc', q: '«Estaba por salir cuando sonó el timbre.» The leaving…', c: ['had already happened', 'was on the verge of happening', 'happened twice', 'never mattered'], a: 1,
+    exp: 'estar por + infinitive = to be about to.' },
+  { t: 'mc', q: '«Habría que revisar el expediente.» This construction is…', c: ['a personal promise', 'impersonal obligation, softened (“one ought to…”)', 'a past event', 'a question'], a: 1,
+    exp: 'hay que → habría que: impersonal “it would be necessary to”.' },
+  { t: 'mc', q: '«Fue construido en 1900» and «Se construyó en 1900» are…', c: ['different tenses', 'both passives — ser-passive and se-passive', 'active sentences', 'both subjunctive'], a: 1,
+    exp: 'Two passive strategies; the se-passive is far more common in speech.' },
+  { t: 'mc', q: '«No creo que lo hubiera hecho.» The doubt is about…', c: ['the present', 'the future', 'a hypothetical or completed past', 'a command'], a: 2,
+    exp: 'Pluperfect subjunctive after doubt: “I don’t think he would have / had done it.”' },
+  { t: 'mc', q: '«Apenas hubo terminado, salió.» The rare hubo terminado is…', c: ['a mistake', 'the pretérito anterior — literary “as soon as he had finished”', 'future perfect', 'a command'], a: 1,
+    exp: 'The pretérito anterior survives in literary Spanish after apenas/en cuanto.' },
+  { t: 'mc', q: '«Vendría a ser lo mismo.» This conditional expresses…', c: ['a firm plan', 'hedged approximation (“it would amount to the same thing”)', 'past habit', 'an order'], a: 1,
+    exp: 'venir a + infinitive in the conditional = a fuzzy, diplomatic estimate.' },
+  { t: 'mc', q: '«Si llegara a pasar…» The llegar a construction marks the condition as…', c: ['certain', 'especially remote (“if it ever were to happen”)', 'already true', 'past'], a: 1,
+    exp: 'llegar a + infinitive in the imperfect subjunctive pushes the possibility even further away.' },
+  { t: 'mc', q: '«Lo habrán notado ya.» The speaker means…', c: ['they will notice tomorrow', 'they have probably noticed by now', 'they noticed long ago, certainly', 'nobody noticed'], a: 1,
+    exp: 'Future perfect of probability about the recent past.' },
+);
+
+/* ============================================================
+   Story expansion — 3 more narratives per level
+   ============================================================ */
+
+CLOZE_STORIES.a1.push(
+  {
+    title: 'En el mercado',
+    note: 'A Saturday shopping trip — all in the present tense.',
+    text: 'Los sábados por la mañana, yo {1} al mercado del centro. Mi vecina Rosa {2} fruta y verduras allí. Yo siempre {3} manzanas y queso. Los vendedores {4} muy amables. «¿Qué {5} hoy?», me pregunta Rosa. «Nosotros {6} naranjas muy dulces». Al final, yo {7} un café y {8} a casa contenta.',
+    blanks: [
+      { hint: 'ir, yo', a: ['voy'], exp: 'ir is irregular: yo voy' },
+      { hint: 'vender, ella', a: ['vende'], exp: 'ella + -er → vende' },
+      { hint: 'comprar, yo', a: ['compro'], exp: 'yo + -ar → compro' },
+      { hint: 'ser, ellos', a: ['son'], exp: 'A lasting trait → ser: son amables' },
+      { hint: 'querer, tú', a: ['quieres'], exp: 'querer stem-changes: quieres (e→ie)' },
+      { hint: 'tener, nosotros', a: ['tenemos'], exp: 'nosotros form: tenemos' },
+      { hint: 'beber, yo', a: ['bebo'], exp: 'yo + -er → bebo' },
+      { hint: 'caminar, yo', a: ['camino'], exp: 'yo + -ar → camino' },
+    ],
+  },
+  {
+    title: 'Mi familia',
+    note: 'Describing people: watch the ser/estar choices.',
+    text: 'Mi familia {1} grande. Mis padres {2} en una casa amarilla. Mi padre {3} en un hospital y mi madre {4} libros para niños. Mis hermanos y yo {5} en la universidad. Nuestro perro Toby {6} siempre en el jardín. Los domingos, todos nosotros {7} juntos y después {8} música.',
+    blanks: [
+      { hint: 'ser', a: ['es'], exp: 'A lasting characteristic → ser: es grande' },
+      { hint: 'vivir, ellos', a: ['viven'], exp: 'ellos + -ir → viven' },
+      { hint: 'trabajar, él', a: ['trabaja'], exp: 'él + -ar → trabaja' },
+      { hint: 'escribir, ella', a: ['escribe'], exp: 'ella + -ir → escribe' },
+      { hint: 'estudiar, nosotros', a: ['estudiamos'], exp: 'nosotros + -ar → estudiamos' },
+      { hint: 'estar', a: ['está'], exp: 'Location → estar: está en el jardín' },
+      { hint: 'comer, nosotros', a: ['comemos'], exp: 'nosotros + -er → comemos' },
+      { hint: 'escuchar, nosotros', a: ['escuchamos'], exp: 'nosotros + -ar → escuchamos' },
+    ],
+  },
+  {
+    title: 'Un día en la oficina',
+    note: 'Workplace Spanish, present tense — bilingual office life.',
+    text: 'Yo {1} en una oficina del condado. Todas las mañanas {2} las ventanas y {3} café para todos. Mi compañera Elena {4} a los visitantes. Muchas personas {5} con preguntas. Nosotros {6} ayudar en español y en inglés. El trabajo {7} interesante y los días {8} rápido.',
+    blanks: [
+      { hint: 'trabajar, yo', a: ['trabajo'], exp: 'yo + -ar → trabajo' },
+      { hint: 'abrir, yo', a: ['abro'], exp: 'yo + -ir → abro' },
+      { hint: 'poner, yo', a: ['pongo'], exp: 'poner has an irregular yo form: pongo' },
+      { hint: 'recibir, ella', a: ['recibe'], exp: 'ella + -ir → recibe' },
+      { hint: 'venir, ellos', a: ['vienen'], exp: 'venir stem-changes: vienen (e→ie)' },
+      { hint: 'poder, nosotros', a: ['podemos'], exp: 'poder: podemos (no stem change in nosotros)' },
+      { hint: 'ser', a: ['es'], exp: 'Characteristic of the job → ser: es interesante' },
+      { hint: 'pasar, ellos', a: ['pasan'], exp: 'los días pasan — 3rd person plural' },
+    ],
+  },
+);
+
+CLOZE_STORIES.a2.push(
+  {
+    title: 'Las vacaciones',
+    note: 'A beach trip: preterite for events, imperfect for the backdrop.',
+    text: 'El verano pasado, mi familia y yo {1} a la costa. Todos los días {2} un tiempo perfecto. Por las mañanas yo {3} por la playa. Una tarde, mi hermano {4} a una roca enorme y {5} saltar al agua. ¡Qué susto! Pero él {6} nadar muy bien. Por las noches, nosotros {7} pescado fresco. El último día {8} recuerdos para todos.',
+    blanks: [
+      { hint: 'viajar, nosotros — pretérito', a: ['viajamos'], exp: 'One completed trip → viajamos' },
+      { hint: 'hacer — weather, imperfecto', a: ['hacía', 'hacia'], exp: 'Weather as backdrop → imperfect: hacía' },
+      { hint: 'correr, yo — imperfecto', a: ['corría', 'corria'], exp: 'Repeated morning habit → corría' },
+      { hint: 'subir, él — pretérito', a: ['subió', 'subio'], exp: 'One event that moves the story → subió' },
+      { hint: 'decidir, él — pretérito', a: ['decidió', 'decidio'], exp: 'A single decision → decidió' },
+      { hint: 'saber, él — imperfecto', a: ['sabía', 'sabia'], exp: 'Background knowledge → imperfect: sabía nadar' },
+      { hint: 'cenar, nosotros — imperfecto', a: ['cenábamos', 'cenabamos'], exp: 'Nightly habit → cenábamos' },
+      { hint: 'comprar, nosotros — pretérito', a: ['compramos'], exp: 'Final completed purchase → compramos' },
+    ],
+  },
+  {
+    title: 'Una visita al médico',
+    note: 'A clinic visit: states in the imperfect, events in the preterite.',
+    text: 'Ayer yo {1} enfermo todo el día. Por la mañana me {2} mucho la cabeza. Mi esposa {3} a la clínica. La recepcionista {4} muy amable y {5} español. El doctor me {6} unas preguntas y me {7} que no era nada grave. Hoy ya me {8} mucho mejor.',
+    blanks: [
+      { hint: 'estar, yo — pretérito', a: ['estuve'], exp: 'A bounded, finished day of illness → estuve (irregular)' },
+      { hint: 'doler — imperfecto', a: ['dolía', 'dolia'], exp: 'Ongoing pain as background → dolía' },
+      { hint: 'llamar, ella — pretérito', a: ['llamó', 'llamo'], exp: 'One completed call → llamó' },
+      { hint: 'ser — imperfecto', a: ['era'], exp: 'Description of a person → era amable' },
+      { hint: 'hablar — imperfecto', a: ['hablaba'], exp: 'Standing characteristic → hablaba español' },
+      { hint: 'hacer, él — pretérito', a: ['hizo'], exp: 'hacer is irregular: hizo' },
+      { hint: 'decir, él — pretérito', a: ['dijo'], exp: 'decir is irregular: dijo' },
+      { hint: 'sentir, yo — presente', a: ['siento'], exp: 'Back to now: me siento mejor (e→ie)' },
+    ],
+  },
+  {
+    title: 'Mi primer trabajo',
+    note: 'Habits in the imperfect — until one day breaks the routine.',
+    text: 'Cuando {1} dieciséis años, {2} en la tienda de mi tío. Todos los días {3} la tienda a las ocho. Un día, una señora famosa {4} a comprar. Yo no {5} qué decir. Ella me {6} con mucha calma y {7} tres sombreros. Nunca {8} ese día.',
+    blanks: [
+      { hint: 'tener, yo — imperfecto', a: ['tenía', 'tenia'], exp: 'Age in the past → imperfect: tenía (CHEATED: Age)' },
+      { hint: 'trabajar, yo — imperfecto', a: ['trabajaba'], exp: 'Ongoing job → trabajaba' },
+      { hint: 'abrir, yo — imperfecto', a: ['abría', 'abria'], exp: 'Daily habit → abría' },
+      { hint: 'entrar, ella — pretérito', a: ['entró', 'entro'], exp: 'The plot twist → entró (SIMBA: Main event)' },
+      { hint: 'saber, yo — imperfecto', a: ['sabía', 'sabia'], exp: 'Mental state as background → sabía' },
+      { hint: 'hablar, ella — pretérito', a: ['habló', 'hablo'], exp: 'One completed exchange → habló' },
+      { hint: 'comprar, ella — pretérito', a: ['compró', 'compro'], exp: 'One completed purchase → compró' },
+      { hint: 'olvidar, yo — pretérito', a: ['olvidé', 'olvide'], exp: 'Nunca olvidé — viewed whole from today' },
+    ],
+  },
+);
+
+CLOZE_STORIES.b1.push(
+  {
+    title: 'La vendimia',
+    note: 'Grape harvest in Napa: past habits, one cold night, and future plans.',
+    text: 'El septiembre pasado {1} en la vendimia en el valle de Napa. Cada mañana {2} antes del amanecer. El aire {3} frío y los viñedos {4} en silencio. Un jueves, el capataz nos {5} que esa noche {6} una helada. Trabajamos hasta la madrugada. El año que viene {7} sin duda — y quizá esta vez {8} manejar el tractor.',
+    blanks: [
+      { hint: 'trabajar, yo — pretérito', a: ['trabajé', 'trabaje'], exp: 'A closed two-month stint → trabajé' },
+      { hint: 'empezar, nosotros — imperfecto', a: ['empezábamos', 'empezabamos'], exp: 'Daily routine → empezábamos' },
+      { hint: 'estar — imperfecto', a: ['estaba'], exp: 'Scenery → estaba frío' },
+      { hint: 'estar, ellos — imperfecto', a: ['estaban'], exp: 'More scenery → estaban en silencio' },
+      { hint: 'decir, él — pretérito', a: ['dijo'], exp: 'The announcement that moves the plot → dijo' },
+      { hint: 'haber — condicional (future of the past)', a: ['habría', 'habria'], exp: '“said that there WOULD BE a frost” → habría' },
+      { hint: 'volver, yo — futuro', a: ['volveré', 'volvere'], exp: 'el año que viene → future: volveré' },
+      { hint: 'poder, yo — futuro', a: ['podré', 'podre'], exp: 'poder has irregular stem podr-: podré' },
+    ],
+  },
+  {
+    title: 'Planes para el año nuevo',
+    note: 'Resolutions: the future tense, with a conditional daydream.',
+    text: 'El año que viene {1} a tocar la guitarra. Mi hermana dice que {2} un maratón. Nuestros padres por fin {3} a Italia. Con más dinero, yo también {4}, pero primero {5} que ahorrar. Mi amigo Leo asegura que {6} más ejercicio, aunque todos {7} cómo termina eso. ¿Y tú? ¿Qué {8} con un año completamente libre?',
+    blanks: [
+      { hint: 'aprender, yo — futuro', a: ['aprenderé', 'aprendere'], exp: 'Future = infinitive + é: aprenderé' },
+      { hint: 'correr, ella — futuro', a: ['correrá', 'correra'], exp: 'infinitive + á: correrá' },
+      { hint: 'viajar, ellos — futuro', a: ['viajarán', 'viajaran'], exp: 'infinitive + án: viajarán' },
+      { hint: 'ir, yo — condicional', a: ['iría', 'iria'], exp: 'Hypothetical (with more money) → conditional: iría' },
+      { hint: 'tener, yo — futuro', a: ['tendré', 'tendre'], exp: 'Irregular stem tendr-: tendré que ahorrar' },
+      { hint: 'hacer, él — futuro', a: ['hará', 'hara'], exp: 'Irregular stem har-: hará' },
+      { hint: 'saber, nosotros — presente', a: ['sabemos'], exp: 'A present fact → sabemos' },
+      { hint: 'hacer, tú — condicional', a: ['harías', 'harias'], exp: 'Pure hypothesis → conditional: harías' },
+    ],
+  },
+  {
+    title: 'El nuevo compañero',
+    note: 'A workplace story mixing description, events, and future-of-the-past.',
+    text: 'Cuando Marco {1} a la oficina, nadie lo {2}. {3} alto y un poco tímido. El jefe nos {4} que Marco {5} con nosotros desde ese día. Al principio casi no {6}, pero una semana después nos {7} a todos a cenar. Ahora {8} mi mejor amigo del trabajo.',
+    blanks: [
+      { hint: 'llegar, él — pretérito', a: ['llegó', 'llego'], exp: 'The arrival: a plot point → llegó' },
+      { hint: 'conocer — imperfecto', a: ['conocía', 'conocia'], exp: 'Ongoing state: nobody knew him → conocía' },
+      { hint: 'ser — imperfecto', a: ['Era', 'era'], exp: 'Physical description → era alto' },
+      { hint: 'decir, él — pretérito', a: ['dijo'], exp: 'One announcement → dijo' },
+      { hint: 'trabajar — condicional (future of the past)', a: ['trabajaría', 'trabajaria'], exp: '“said he WOULD work with us” → trabajaría' },
+      { hint: 'hablar, él — imperfecto', a: ['hablaba'], exp: 'Habit during that period → casi no hablaba' },
+      { hint: 'invitar, él — pretérito', a: ['invitó', 'invito'], exp: 'The turning point → invitó' },
+      { hint: 'ser — presente', a: ['es'], exp: 'Present-day fact → es mi mejor amigo' },
+    ],
+  },
+);
+
+CLOZE_STORIES.b2.push(
+  {
+    title: 'En la clínica',
+    note: 'Front-desk Spanish: requests and advice run on the subjunctive.',
+    text: 'Bienvenida a la clínica del condado. Es necesario que usted {1} este formulario. Le recomiendo que {2} su tarjeta de seguro la próxima vez. Cuando la enfermera la {3}, pase al consultorio. El doctor quiere que usted {4} y que {5} mucha agua. No creo que {6} nada serio, pero es importante que {7} en dos semanas. Sabemos que usted {8} muchas preguntas — para eso estamos.',
+    blanks: [
+      { hint: 'llenar, usted — subjuntivo', a: ['llene'], exp: 'Es necesario que (Impersonal) → subjunctive: llene' },
+      { hint: 'traer, usted — subjuntivo', a: ['traiga'], exp: 'Recommendation → subjunctive; traer → traiga (irregular yo: traigo)' },
+      { hint: 'llamar — subjuntivo', a: ['llame'], exp: 'cuando + pending event → subjunctive: llame' },
+      { hint: 'descansar, usted — subjuntivo', a: ['descanse'], exp: 'quiere que (Wish) → descanse' },
+      { hint: 'beber, usted — subjuntivo', a: ['beba'], exp: 'Still under quiere que → beba' },
+      { hint: 'ser — subjuntivo', a: ['sea'], exp: 'No creo que (Doubt) → sea' },
+      { hint: 'volver, usted — subjuntivo', a: ['vuelva'], exp: 'es importante que → vuelva (o→ue)' },
+      { hint: 'tener, usted — indicativo', a: ['tiene'], exp: '“Sabemos que” asserts a fact → indicative: tiene' },
+    ],
+  },
+  {
+    title: 'La reunión de vecinos',
+    note: 'A community flyer: commands, subjunctive triggers, and one confident indicative.',
+    text: '¡Atención, vecinos! Queremos que todos {1} a la reunión del jueves. Es posible que la ciudad {2} un parque nuevo. Aunque usted no {3} asistir, puede mandar sus comentarios. {4} con sus vecinos antes de la reunión. No {5} traer sus preguntas. Buscamos un voluntario que {6} de jardines. Ojalá {7} buen tiempo ese día. Estamos seguros de que la reunión {8} un éxito.',
+    blanks: [
+      { hint: 'venir, ustedes — subjuntivo', a: ['vengan'], exp: 'Queremos que (Wish) → vengan' },
+      { hint: 'construir — subjuntivo', a: ['construya'], exp: 'Es posible que → construya' },
+      { hint: 'poder, usted — subjuntivo', a: ['pueda'], exp: 'aunque + hypothetical (“even if you can’t”) → pueda' },
+      { hint: 'hablar, usted — imperativo', a: ['Hable', 'hable'], exp: 'usted commands use the subjunctive form: Hable' },
+      { hint: 'olvidar, ustedes — imperativo negativo', a: ['olviden'], exp: 'Negative command → subjunctive: no olviden' },
+      { hint: 'saber — subjuntivo', a: ['sepa'], exp: 'Nonspecific antecedent (any volunteer who knows) → sepa' },
+      { hint: 'hacer — subjuntivo', a: ['haga'], exp: 'ojalá always → haga' },
+      { hint: 'ser — futuro', a: ['será', 'sera'], exp: '“Estamos seguros de que” = certainty → indicative future: será' },
+    ],
+  },
+  {
+    title: 'Se busca recepcionista',
+    note: 'A job posting: the subjunctive of people who may not exist.',
+    text: 'Se busca recepcionista que {1} español e inglés. Es esencial que el candidato {2} experiencia con el público. Preferimos a alguien que {3} cerca de la oficina. Cuando usted {4} su solicitud, incluya dos referencias. Dudamos que el puesto {5} abierto mucho tiempo. Sabemos que el horario no {6} fácil, pero ofrecemos buenos beneficios. Le pedimos que no {7} por teléfono: es mejor que todo {8} por escrito.',
+    blanks: [
+      { hint: 'hablar — subjuntivo', a: ['hable'], exp: 'Nonspecific antecedent (whoever fits) → hable' },
+      { hint: 'tener — subjuntivo', a: ['tenga'], exp: 'Es esencial que (Impersonal) → tenga' },
+      { hint: 'vivir — subjuntivo', a: ['viva'], exp: 'Still hypothetical person → viva' },
+      { hint: 'mandar, usted — subjuntivo', a: ['mande'], exp: 'cuando + future action → mande' },
+      { hint: 'estar — subjuntivo', a: ['esté', 'este'], exp: 'Dudamos que (Doubt) → esté' },
+      { hint: 'ser — indicativo', a: ['es'], exp: '“Sabemos que” = asserted fact → es' },
+      { hint: 'llamar, usted — subjuntivo', a: ['llame'], exp: 'Le pedimos que (Request) → llame' },
+      { hint: 'quedar — subjuntivo', a: ['quede'], exp: 'es mejor que (Impersonal judgment) → quede' },
+    ],
+  },
+);
+
+CLOZE_STORIES.c1.push(
+  {
+    title: 'El expediente perdido',
+    note: 'An office mystery in layered past tenses.',
+    text: 'Cuando la supervisora pidió el expediente, este ya {1}. Nadie sabía quién lo {2} por última vez. «Si lo {3} correctamente, no estaríamos así», me dijo. Yo {4} que estaba en el cajón. La becaria sugirió que {5} la sala de copias. Allí estaba, como si alguien lo {6} a propósito. Para el viernes, todos ya {7} el incidente — o eso espero. De ahora en adelante, guardaré cada documento como si {8} oro.',
+    blanks: [
+      { hint: 'desaparecer — pluscuamperfecto', a: ['había desaparecido', 'habia desaparecido'], exp: 'Gone before she asked → pluperfect: había desaparecido' },
+      { hint: 'ver — pluscuamperfecto', a: ['había visto', 'habia visto'], exp: 'Seen before that moment → había visto' },
+      { hint: 'archivar, tú — pluscuamperfecto de subjuntivo', a: ['hubieras archivado'], exp: 'si + unreal past → hubieras archivado' },
+      { hint: 'jurar, yo — condicional perfecto', a: ['habría jurado', 'habria jurado'], exp: '“I would have sworn” → habría jurado' },
+      { hint: 'revisar, nosotros — imperfecto de subjuntivo', a: ['revisáramos', 'revisaramos'], exp: 'sugirió que + past → revisáramos' },
+      { hint: 'esconder — pluscuamperfecto de subjuntivo', a: ['hubiera escondido'], exp: 'como si + unreal past → hubiera escondido' },
+      { hint: 'olvidar — futuro perfecto', a: ['habrán olvidado', 'habran olvidado'], exp: 'Done before a future point → habrán olvidado' },
+      { hint: 'ser — imperfecto de subjuntivo', a: ['fuera'], exp: 'como si always → imperfect subjunctive: fuera' },
+    ],
+  },
+  {
+    title: 'La carta de la abuela',
+    note: 'Regret, wishes, and unreal pasts — the imperfect subjunctive at work.',
+    text: '«Querida nieta: si {1} darte un solo consejo, sería este: viaja». Así empezaba la carta que mi abuela me {2} antes de morir. Decía que ella {3} ver el mar una vez más. «No dejes que el miedo te {4}», escribió. «Yo esperé demasiado; ojalá no lo {5}». Si no {6} esa carta, nunca habría comprado el boleto a Lisboa. Hoy, cada vez que veo el océano, es como si ella {7} a mi lado. Quienquiera que {8} que las cartas no cambian vidas, se equivoca.',
+    blanks: [
+      { hint: 'poder, yo — imperfecto de subjuntivo', a: ['pudiera'], exp: 'si + unreal present → pudiera' },
+      { hint: 'escribir — pluscuamperfecto', a: ['había escrito', 'habia escrito'], exp: 'Written before her death → había escrito' },
+      { hint: 'querer — condicional perfecto', a: ['habría querido', 'habria querido'], exp: '“she would have liked” → habría querido' },
+      { hint: 'detener — subjuntivo', a: ['detenga'], exp: 'No dejes que (influence) → detenga' },
+      { hint: 'hacer — pluscuamperfecto de subjuntivo', a: ['hubiera hecho'], exp: 'ojalá + regret about the past → hubiera hecho' },
+      { hint: 'leer, yo — pluscuamperfecto de subjuntivo', a: ['hubiera leído', 'hubiera leido'], exp: 'si + unreal past → hubiera leído' },
+      { hint: 'estar — imperfecto de subjuntivo', a: ['estuviera'], exp: 'como si → estuviera' },
+      { hint: 'decir — subjuntivo', a: ['diga'], exp: 'quienquiera que → subjunctive: diga' },
+    ],
+  },
+  {
+    title: 'El testigo',
+    note: 'A formal witness statement — the register of official Spanish.',
+    text: '—Cuente exactamente lo que vio, como si nosotros no {1} nada. —Para cuando llegué, el camión ya {2} contra el semáforo. El conductor {3} haber frenado antes, en mi opinión. Dudo que {4} a más de cuarenta. Si yo no {5} allí, nadie habría llamado a emergencias. —¿Es posible que otro coche lo {6}? —Lo {7}. Y una cosa más: para mañana ya les {8} mi declaración por escrito.',
+    blanks: [
+      { hint: 'saber, nosotros — imperfecto de subjuntivo', a: ['supiéramos', 'supieramos'], exp: 'como si → supiéramos' },
+      { hint: 'chocar — pluscuamperfecto', a: ['había chocado', 'habia chocado'], exp: 'Crashed before I arrived → había chocado' },
+      { hint: 'deber — condicional', a: ['debería', 'deberia'], exp: 'debería haber frenado = should have braked' },
+      { hint: 'ir — imperfecto de subjuntivo', a: ['fuera'], exp: 'Dudo que + past reference → fuera' },
+      { hint: 'estar, yo — pluscuamperfecto de subjuntivo', a: ['hubiera estado'], exp: 'si + unreal past → hubiera estado' },
+      { hint: 'empujar — imperfecto de subjuntivo', a: ['empujara'], exp: 'Es posible que + past event → empujara' },
+      { hint: 'notar, yo — condicional perfecto', a: ['habría notado', 'habria notado'], exp: '“I would have noticed” → habría notado' },
+      { hint: 'mandar, yo — futuro perfecto', a: ['habré mandado', 'habre mandado'], exp: 'Done before tomorrow → habré mandado' },
+    ],
+  },
+);
+
+/* ============================================================
+   Story expansion II — 8 more narratives per level
+   (12 per level, 60 stories, 480 blanks in total)
+   ============================================================ */
+
+CLOZE_STORIES.a1.push(
+  {
+    title: 'En el restaurante',
+    note: 'Ordering dinner — presents, with two stem-changers hiding in the menu.',
+    text: 'Mi restaurante favorito {1} en la calle Mayor. Los camareros {2} muy simpáticos. Yo siempre {3} el pollo con arroz y mi esposa {4} la sopa del día. Nosotros {5} agua y, a veces, un poco de vino. La comida {6} deliciosa. De postre, yo {7} un flan y mi esposa {8} un café.',
+    blanks: [
+      { hint: 'estar', a: ['está', 'esta'], exp: 'Location → estar: está en la calle Mayor' },
+      { hint: 'ser, ellos', a: ['son'], exp: 'A lasting trait → ser: son simpáticos' },
+      { hint: 'pedir, yo', a: ['pido'], exp: 'pedir stem-changes e→i: pido' },
+      { hint: 'preferir, ella', a: ['prefiere'], exp: 'preferir stem-changes e→ie: prefiere' },
+      { hint: 'beber, nosotros', a: ['bebemos'], exp: 'nosotros + -er → bebemos' },
+      { hint: 'ser', a: ['es'], exp: 'Characteristic of the food → ser: es deliciosa' },
+      { hint: 'comer, yo', a: ['como'], exp: 'yo + -er → como' },
+      { hint: 'tomar, ella', a: ['toma'], exp: 'ella + -ar → toma' },
+    ],
+  },
+  {
+    title: 'La clase de español',
+    note: 'Tuesday night Spanish class — and one sneaky ser for an event.',
+    text: 'Mi clase de español {1} los martes por la noche. La profesora {2} de Bogotá y también {3} inglés. Nosotros {4} mucho en clase y {5} palabras nuevas. Mi amigo Sam no {6} los verbos irregulares. «¿Por qué {7} tan difíciles?», me pregunta. Yo {8} que practicar es la respuesta.',
+    blanks: [
+      { hint: 'ser', a: ['es'], exp: 'Events and schedules take ser: la clase es los martes' },
+      { hint: 'ser — origin', a: ['es'], exp: 'Origin → ser: es de Bogotá (DOCTOR: Origin)' },
+      { hint: 'hablar, ella', a: ['habla'], exp: 'ella + -ar → habla' },
+      { hint: 'estudiar, nosotros', a: ['estudiamos'], exp: 'nosotros + -ar → estudiamos' },
+      { hint: 'aprender, nosotros', a: ['aprendemos'], exp: 'nosotros + -er → aprendemos' },
+      { hint: 'entender, él', a: ['entiende'], exp: 'entender stem-changes e→ie: entiende' },
+      { hint: 'ser, ellos', a: ['son'], exp: 'A trait of the verbs → ser: son difíciles' },
+      { hint: 'creer, yo', a: ['creo'], exp: 'yo + -er → creo' },
+    ],
+  },
+  {
+    title: 'El apartamento nuevo',
+    note: 'A new apartment — ser for what it is, estar for where and how.',
+    text: 'Mi apartamento nuevo {1} en el tercer piso. {2} pequeño pero bonito. Las ventanas {3} grandes y la cocina {4} mucha luz. Mis vecinos {5} música por la noche, pero no me importa. Yo {6} cerca de mi trabajo ahora: {7} a la oficina en diez minutos. ¡{8} muy contento con el cambio!',
+    blanks: [
+      { hint: 'estar', a: ['está', 'esta'], exp: 'Location → estar: está en el tercer piso' },
+      { hint: 'ser', a: ['Es', 'es'], exp: 'Size and looks are characteristics → ser: es pequeño' },
+      { hint: 'ser, ellas', a: ['son'], exp: 'Characteristic → ser: son grandes' },
+      { hint: 'tener', a: ['tiene'], exp: 'tener is irregular: tiene' },
+      { hint: 'escuchar, ellos', a: ['escuchan'], exp: 'ellos + -ar → escuchan' },
+      { hint: 'vivir, yo', a: ['vivo'], exp: 'yo + -ir → vivo' },
+      { hint: 'caminar, yo', a: ['camino'], exp: 'yo + -ar → camino' },
+      { hint: 'estar, yo', a: ['Estoy', 'estoy'], exp: 'Current feeling → estar: estoy contento (PLACE: Condition)' },
+    ],
+  },
+  {
+    title: 'En el parque',
+    note: 'A Sunday in the park, all in the present tense.',
+    text: 'Los domingos, el parque {1} lleno de gente. Los niños {2} al fútbol y los abuelos {3} el periódico. Mi perro {4} detrás de las palomas. Yo {5} en un banco y {6} a la gente pasar. Un señor {7} helados cerca de la fuente. Los helados de fresa {8} mis favoritos.',
+    blanks: [
+      { hint: 'estar', a: ['está', 'esta'], exp: 'A temporary state → estar: está lleno' },
+      { hint: 'jugar, ellos', a: ['juegan'], exp: 'jugar stem-changes u→ue: juegan' },
+      { hint: 'leer, ellos', a: ['leen'], exp: 'ellos + -er → leen' },
+      { hint: 'correr', a: ['corre'], exp: 'él + -er → corre' },
+      { hint: 'descansar, yo', a: ['descanso'], exp: 'yo + -ar → descanso' },
+      { hint: 'mirar, yo', a: ['miro'], exp: 'yo + -ar → miro' },
+      { hint: 'vender', a: ['vende'], exp: 'él + -er → vende' },
+      { hint: 'ser, ellos', a: ['son'], exp: 'A lasting preference → ser: son mis favoritos' },
+    ],
+  },
+  {
+    title: 'El desayuno de los domingos',
+    note: 'A family breakfast — including the irregular yo form of poner.',
+    text: 'En mi casa, el desayuno del domingo {1} importante. Mi padre {2} huevos y pan tostado. Mi madre {3} el mejor café del mundo. Mis hermanas {4} jugo de naranja. Yo {5} la mesa con cuidado. Todos nosotros {6} juntos hasta muy tarde. Después, mi padre {7} los platos y yo {8} la cocina.',
+    blanks: [
+      { hint: 'ser', a: ['es'], exp: 'A general truth about the family → ser: es importante' },
+      { hint: 'cocinar, él', a: ['cocina'], exp: 'él + -ar → cocina' },
+      { hint: 'hacer, ella', a: ['hace'], exp: 'hacer: ella hace (regular outside the yo form)' },
+      { hint: 'beber, ellas', a: ['beben'], exp: 'ellas + -er → beben' },
+      { hint: 'poner, yo', a: ['pongo'], exp: 'poner has an irregular yo form: pongo' },
+      { hint: 'hablar, nosotros', a: ['hablamos'], exp: 'nosotros + -ar → hablamos' },
+      { hint: 'lavar, él', a: ['lava'], exp: 'él + -ar → lava' },
+      { hint: 'limpiar, yo', a: ['limpio'], exp: 'yo + -ar → limpio' },
+    ],
+  },
+  {
+    title: 'La estudiante nueva',
+    note: 'Akiko introduces herself — soy for who she is, estoy for how she feels.',
+    text: 'Hola, me llamo Akiko y {1} de Japón. Ahora {2} en California con una familia americana. Todos los días {3} el autobús al centro. Mis clases {4} a las nueve de la mañana. Yo {5} un poco nerviosa porque no {6} mucho inglés todavía. Pero la familia {7} muy amable y yo {8} rápido.',
+    blanks: [
+      { hint: 'ser, yo', a: ['soy'], exp: 'Origin → ser: soy de Japón (DOCTOR: Origin)' },
+      { hint: 'vivir, yo', a: ['vivo'], exp: 'yo + -ir → vivo' },
+      { hint: 'tomar, yo', a: ['tomo'], exp: 'yo + -ar → tomo' },
+      { hint: 'empezar, ellas', a: ['empiezan'], exp: 'empezar stem-changes e→ie: empiezan' },
+      { hint: 'estar, yo', a: ['estoy'], exp: 'A feeling right now → estar: estoy nerviosa' },
+      { hint: 'hablar, yo', a: ['hablo'], exp: 'yo + -ar → hablo' },
+      { hint: 'ser', a: ['es'], exp: 'A lasting trait → ser: es amable' },
+      { hint: 'aprender, yo', a: ['aprendo'], exp: 'yo + -er → aprendo' },
+    ],
+  },
+  {
+    title: 'En la biblioteca',
+    note: 'Thursday at the library — quiet presents, one stem-changer.',
+    text: 'La biblioteca de mi barrio {1} enorme. Yo {2} allí todos los jueves. La bibliotecaria, la señora Ortiz, {3} todos los libros de memoria. Los estudiantes {4} en silencio. Yo {5} las novelas de misterio. A veces mi amiga y yo {6} un rato en la entrada — dentro, ¡no {7} posible! La señora Ortiz nos {8} con una sonrisa.',
+    blanks: [
+      { hint: 'ser', a: ['es'], exp: 'Characteristic → ser: es enorme' },
+      { hint: 'ir, yo', a: ['voy'], exp: 'ir is irregular: yo voy' },
+      { hint: 'conocer, ella', a: ['conoce'], exp: 'ella + -er → conoce' },
+      { hint: 'leer, ellos', a: ['leen'], exp: 'ellos + -er → leen' },
+      { hint: 'preferir, yo', a: ['prefiero'], exp: 'preferir stem-changes e→ie: prefiero' },
+      { hint: 'hablar, nosotras', a: ['hablamos'], exp: 'nosotras + -ar → hablamos' },
+      { hint: 'ser', a: ['es'], exp: 'A general judgment → ser: no es posible' },
+      { hint: 'mirar, ella', a: ['mira'], exp: 'ella + -ar → mira' },
+    ],
+  },
+  {
+    title: 'El pequeño chef',
+    note: 'Saturday cookies with an eight-year-old chef.',
+    text: 'Mi hijo Daniel {1} ocho años y {2} cocinar. Los sábados, él {3} galletas de chocolate. Primero se {4} las manos, como un chef profesional. Yo {5} los ingredientes en la mesa. Daniel {6} el azúcar con la mantequilla. Las galletas siempre {7} un poco raras, pero nosotros {8} todas.',
+    blanks: [
+      { hint: 'tener', a: ['tiene'], exp: 'Age uses tener: tiene ocho años' },
+      { hint: 'querer', a: ['quiere'], exp: 'querer stem-changes e→ie: quiere cocinar' },
+      { hint: 'hacer, él', a: ['hace'], exp: 'él hace galletas — regular outside the yo form' },
+      { hint: 'lavar, él (se…)', a: ['lava'], exp: 'se lava las manos — the se is already given' },
+      { hint: 'poner, yo', a: ['pongo'], exp: 'Irregular yo form: pongo' },
+      { hint: 'mezclar, él', a: ['mezcla'], exp: 'él + -ar → mezcla' },
+      { hint: 'estar, ellas', a: ['están', 'estan'], exp: 'How they turn out this time → estar: están raras' },
+      { hint: 'comer, nosotros', a: ['comemos'], exp: 'nosotros + -er → comemos' },
+    ],
+  },
+);
+
+CLOZE_STORIES.a2.push(
+  {
+    title: 'La fiesta sorpresa',
+    note: 'A surprise party: preparations in the imperfect, the big moment in the preterite.',
+    text: 'El viernes pasado {1} el cumpleaños de mi madre. Mi hermana y yo {2} una fiesta sorpresa. Por la tarde, yo {3} la casa mientras mi hermana {4} el pastel. Mamá no {5} nada. Cuando ella {6} la puerta, todos {7} «¡Sorpresa!». Mi madre {8} de alegría.',
+    blanks: [
+      { hint: 'ser — pretérito', a: ['fue'], exp: 'The birthday, a completed occasion → fue' },
+      { hint: 'organizar, nosotras — pretérito', a: ['organizamos'], exp: 'One completed plan → organizamos' },
+      { hint: 'decorar, yo — imperfecto', a: ['decoraba'], exp: 'mientras = two ongoing actions → decoraba' },
+      { hint: 'preparar, ella — imperfecto', a: ['preparaba'], exp: 'The other rolling action → preparaba' },
+      { hint: 'saber — imperfecto', a: ['sabía', 'sabia'], exp: 'A mental state as background → sabía' },
+      { hint: 'abrir, ella — pretérito', a: ['abrió', 'abrio'], exp: 'The plot point → abrió (SIMBA: Main event)' },
+      { hint: 'gritar, ellos — pretérito', a: ['gritaron'], exp: 'One completed shout → gritaron' },
+      { hint: 'llorar, ella — pretérito', a: ['lloró', 'lloro'], exp: 'A reaction that happened once → lloró' },
+    ],
+  },
+  {
+    title: 'El gato en el árbol',
+    note: 'A reading afternoon, interrupted — plus the -car → -qué spelling change.',
+    text: 'Ayer por la tarde, yo {1} en el jardín cuando {2} un ruido extraño. {3} nuestro gato Simón: {4} en lo alto del árbol y no {5} bajar. Yo {6} una escalera y {7} despacio. Al final, Simón {8} solo, como siempre. ¡Los gatos son así!',
+    blanks: [
+      { hint: 'leer, yo — imperfecto', a: ['leía', 'leia'], exp: 'Action in progress, camera rolling → leía' },
+      { hint: 'oír, yo — pretérito', a: ['oí', 'oi'], exp: 'The interruption → oí (SIMBA: Interruption)' },
+      { hint: 'ser — imperfecto', a: ['Era', 'era'], exp: 'Identifying what it was → era el gato' },
+      { hint: 'estar — imperfecto', a: ['estaba'], exp: 'Location as scenery → estaba en el árbol' },
+      { hint: 'poder — imperfecto', a: ['podía', 'podia'], exp: 'An ongoing state → no podía bajar' },
+      { hint: 'buscar, yo — pretérito', a: ['busqué', 'busque'], exp: 'Car-Gar-Zar: -car → -qué: busqué' },
+      { hint: 'subir, yo — pretérito', a: ['subí', 'subi'], exp: 'The next plot point → subí' },
+      { hint: 'bajar, él — pretérito', a: ['bajó', 'bajo'], exp: 'One completed descent → bajó' },
+    ],
+  },
+  {
+    title: 'El primer día de clases',
+    note: 'A childhood memory — and conocer in the preterite means “met”.',
+    text: 'Cuando yo {1} niña, {2} a una escuela muy pequeña. Recuerdo bien mi primer día: yo {3} mucho miedo. Mi madre me {4} de la mano hasta la puerta. La maestra me {5} con una sonrisa. Ese día {6} a dos amigas, Ana y Luisa. Nosotras {7} juntas todos los recreos y todavía hoy {8} amigas.',
+    blanks: [
+      { hint: 'ser, yo — imperfecto', a: ['era'], exp: 'Life stage as background → cuando era niña' },
+      { hint: 'ir, yo — imperfecto', a: ['iba'], exp: 'A repeated routine → iba (ir: iba, ibas, iba…)' },
+      { hint: 'tener, yo — imperfecto', a: ['tenía', 'tenia'], exp: 'An ongoing state → tenía miedo' },
+      { hint: 'llevar, ella — pretérito', a: ['llevó', 'llevo'], exp: 'One completed action that day → llevó' },
+      { hint: 'recibir, ella — pretérito', a: ['recibió', 'recibio'], exp: 'One completed welcome → recibió' },
+      { hint: 'conocer, yo — pretérito', a: ['conocí', 'conoci'], exp: 'Preterite conocer = met for the first time: conocí' },
+      { hint: 'jugar, nosotras — imperfecto', a: ['jugábamos', 'jugabamos'], exp: 'Every recess = habit → jugábamos' },
+      { hint: 'ser, nosotras — presente', a: ['somos'], exp: 'Back to today → somos amigas' },
+    ],
+  },
+  {
+    title: 'Un viaje en tren',
+    note: 'Three hours to San Francisco — events, scenery, and the irregular di.',
+    text: 'El mes pasado {1} en tren a San Francisco. El viaje {2} tres horas. Por la ventana, yo {3} el mar y las montañas. {4} un día perfecto. Un señor mayor me {5} de su juventud: antes él {6} en los trenes. Cuando {7} a la estación, le {8} la mano. ¡Qué viaje tan bonito!',
+    blanks: [
+      { hint: 'viajar, yo — pretérito', a: ['viajé', 'viaje'], exp: 'One completed trip → viajé' },
+      { hint: 'durar — pretérito', a: ['duró', 'duro'], exp: 'A duration with clear boundaries → duró tres horas' },
+      { hint: 'mirar, yo — imperfecto', a: ['miraba'], exp: 'Ongoing background activity → miraba' },
+      { hint: 'ser — imperfecto', a: ['Era', 'era'], exp: 'Weather and scenery → era un día perfecto' },
+      { hint: 'hablar, él — pretérito', a: ['habló', 'hablo'], exp: 'That conversation, viewed whole → me habló' },
+      { hint: 'trabajar, él — imperfecto', a: ['trabajaba'], exp: 'antes + past habit → trabajaba' },
+      { hint: 'llegar, nosotros — pretérito', a: ['llegamos'], exp: 'One completed arrival → llegamos' },
+      { hint: 'dar, yo — pretérito', a: ['di'], exp: 'dar is irregular and needs no accent: di' },
+    ],
+  },
+  {
+    title: 'La tormenta',
+    note: 'A blackout night: hubo for the event, imperfect for the storm around it.',
+    text: 'Anoche {1} una tormenta terrible: {2} muchísimo y el viento {3} muy fuerte. Mi hermano y yo {4} una película cuando, de repente, se {5} la luz. Nosotros {6} velas en la cocina. Al final, la noche {7} divertida: {8} historias de miedo hasta muy tarde.',
+    blanks: [
+      { hint: 'haber — pretérito', a: ['hubo'], exp: 'A storm happened, viewed whole → hubo (haber → hubo)' },
+      { hint: 'llover — imperfecto', a: ['llovía', 'llovia'], exp: 'The rain as rolling background → llovía' },
+      { hint: 'soplar — imperfecto', a: ['soplaba'], exp: 'More scenery → el viento soplaba' },
+      { hint: 'ver, nosotros — imperfecto', a: ['veíamos', 'veiamos'], exp: 'Action in progress, about to be interrupted → veíamos' },
+      { hint: 'ir — pretérito (se fue la luz = the power went out)', a: ['fue'], exp: 'The interruption → se fue la luz (SIMBA: Interruption)' },
+      { hint: 'buscar, nosotros — pretérito', a: ['buscamos'], exp: 'One completed search → buscamos' },
+      { hint: 'ser — pretérito', a: ['fue'], exp: 'The night, judged as a finished whole → fue divertida' },
+      { hint: 'contar, nosotros — pretérito', a: ['contamos'], exp: 'A completed block of storytelling → contamos' },
+    ],
+  },
+  {
+    title: 'El mercado de mi abuela',
+    note: 'Grandma’s flower stall — and estuvo/pudo marking the onset of states.',
+    text: 'Mi abuela {1} un puesto de flores en el mercado. Todas las mañanas se {2} a las cinco para preparar todo. Los clientes la {3} muchísimo. Un día, un chef famoso {4} al puesto y {5} todas las rosas para su restaurante. Mi abuela {6} tan contenta que no {7} dormir esa noche. Todavía hoy ella {8} esa historia en cada cena familiar.',
+    blanks: [
+      { hint: 'tener — imperfecto', a: ['tenía', 'tenia'], exp: 'Ongoing possession in the past → tenía' },
+      { hint: 'levantar, ella (se…) — imperfecto', a: ['levantaba'], exp: 'Daily habit → se levantaba' },
+      { hint: 'querer, ellos — imperfecto', a: ['querían', 'querian'], exp: 'An ongoing feeling → la querían' },
+      { hint: 'llegar — pretérito', a: ['llegó', 'llego'], exp: 'The plot point → llegó' },
+      { hint: 'comprar — pretérito', a: ['compró', 'compro'], exp: 'One completed purchase → compró' },
+      { hint: 'estar, ella — pretérito', a: ['estuvo'], exp: 'Preterite on a state = its onset: estuvo tan contenta (she GOT so happy)' },
+      { hint: 'poder — pretérito', a: ['pudo'], exp: 'Bounded to that night → no pudo dormir (poder → pudo)' },
+      { hint: 'contar — presente', a: ['cuenta'], exp: 'Back to today; contar stem-changes o→ue: cuenta' },
+    ],
+  },
+  {
+    title: 'El partido de fútbol',
+    note: 'A last-minute goal — clock time takes the imperfect, the goal takes the preterite.',
+    text: 'El domingo pasado, mi equipo {1} contra los Tigres. {2} las diez de la mañana cuando el partido {3}. Nosotros {4} muy nerviosos porque los Tigres {5} el mejor equipo de la liga. En el último minuto, yo {6} el balón, {7} hacia la portería y… ¡gol! Todos mis compañeros me {8}. ¡Qué día!',
+    blanks: [
+      { hint: 'jugar — pretérito', a: ['jugó', 'jugo'], exp: 'One completed match → jugó' },
+      { hint: 'ser — time, imperfecto', a: ['Eran', 'eran'], exp: 'Clock time in the past → imperfect: eran las diez (CHEATED: Time)' },
+      { hint: 'empezar — pretérito', a: ['empezó', 'empezo'], exp: 'The kickoff, one moment → empezó' },
+      { hint: 'estar, nosotros — imperfecto', a: ['estábamos', 'estabamos'], exp: 'Emotional state as background → estábamos nerviosos' },
+      { hint: 'ser, ellos — imperfecto', a: ['eran'], exp: 'Description of the rival → eran el mejor equipo' },
+      { hint: 'recibir, yo — pretérito', a: ['recibí', 'recibi'], exp: 'One plot point → recibí' },
+      { hint: 'correr, yo — pretérito', a: ['corrí', 'corri'], exp: 'The next plot point → corrí' },
+      { hint: 'abrazar, ellos — pretérito', a: ['abrazaron'], exp: 'One completed celebration → abrazaron' },
+    ],
+  },
+  {
+    title: 'La mudanza',
+    note: 'Moving house: wanted-vs-knew imperfects, one closed rainy day, and trajo.',
+    text: 'Hace dos años, nosotros nos {1} de casa. Yo no {2} cambiar de barrio porque {3} a todos los vecinos. El día de la mudanza {4} sin parar y las cajas {5} muy pesadas. Pero la primera noche, la vecina nueva nos {6} una tortilla enorme. Ese pequeño gesto lo {7} todo. Ahora este barrio me {8} más que el anterior.',
+    blanks: [
+      { hint: 'mudar, nosotros (nos…) — pretérito', a: ['mudamos'], exp: 'One completed move → nos mudamos' },
+      { hint: 'querer, yo — imperfecto', a: ['quería', 'queria'], exp: 'A state of wanting, no attempt → quería' },
+      { hint: 'conocer, yo — imperfecto', a: ['conocía', 'conocia'], exp: 'Imperfect conocer = knew (state), not met → conocía' },
+      { hint: 'llover — pretérito', a: ['llovió', 'llovio'], exp: 'That whole day of rain, viewed as one closed event → llovió' },
+      { hint: 'ser, ellas — imperfecto', a: ['eran'], exp: 'Description → eran pesadas' },
+      { hint: 'traer — pretérito', a: ['trajo'], exp: 'traer is irregular with j: trajo' },
+      { hint: 'cambiar — pretérito', a: ['cambió', 'cambio'], exp: 'One gesture, one change → cambió' },
+      { hint: 'gustar — presente', a: ['gusta'], exp: 'Back to the present → me gusta' },
+    ],
+  },
+);
+
+CLOZE_STORIES.b1.push(
+  {
+    title: 'El pronóstico del tiempo',
+    note: 'A TV weather forecast — futures everywhere, plus one tactful conditional.',
+    text: 'Buenas noches. Mañana {1} un día soleado en todo el valle. Las temperaturas {2} hasta los treinta grados. Por la noche {3} algunas nubes desde el norte, pero no {4}. El domingo {5} más fresco. Con este calor, mucha gente {6} a la playa: les {7} el estado del tráfico a las ocho. Yo, en su lugar, {8} temprano.',
+    blanks: [
+      { hint: 'hacer — futuro', a: ['hará', 'hara'], exp: 'Irregular stem har-: hará un día soleado' },
+      { hint: 'subir, ellas — futuro', a: ['subirán', 'subiran'], exp: 'infinitive + án: subirán' },
+      { hint: 'llegar, ellas — futuro', a: ['llegarán', 'llegaran'], exp: 'infinitive + án: llegarán' },
+      { hint: 'llover — futuro', a: ['lloverá', 'llovera'], exp: 'infinitive + á: lloverá' },
+      { hint: 'estar — futuro', a: ['estará', 'estara'], exp: 'infinitive + á: estará más fresco' },
+      { hint: 'ir — futuro', a: ['irá', 'ira'], exp: 'ir is regular in the future: irá' },
+      { hint: 'contar, nosotros — futuro', a: ['contaremos'], exp: 'infinitive + emos: contaremos' },
+      { hint: 'salir, yo — condicional', a: ['saldría', 'saldria'], exp: '“In your place” = hypothetical advice → conditional, irregular stem saldr-: saldría' },
+    ],
+  },
+  {
+    title: 'La máquina del tiempo',
+    note: 'Pure hypothesis — a full workout for the conditional.',
+    text: '¿Qué {1} tú con una máquina del tiempo? Yo {2} primero a la época de los dinosaurios — aunque no {3} de la máquina, ¡por si acaso! Mi hermana {4} a Cervantes; dice que le {5} mil preguntas. Mis padres {6} otra vez su primera cita. Y mi abuelo asegura que él no {7} nada: «El pasado {8} donde debe estar», dice siempre.',
+    blanks: [
+      { hint: 'hacer, tú — condicional', a: ['harías', 'harias'], exp: 'Irregular stem har-: harías' },
+      { hint: 'viajar, yo — condicional', a: ['viajaría', 'viajaria'], exp: 'Hypothetical plan → conditional: viajaría' },
+      { hint: 'salir, yo — condicional', a: ['saldría', 'saldria'], exp: 'Irregular stem saldr-: no saldría' },
+      { hint: 'visitar, ella — condicional', a: ['visitaría', 'visitaria'], exp: 'infinitive + ía: visitaría' },
+      { hint: 'hacer, ella — condicional', a: ['haría', 'haria'], exp: 'le haría mil preguntas — irregular har-' },
+      { hint: 'repetir, ellos — condicional', a: ['repetirían', 'repetirian'], exp: 'infinitive + ían: repetirían' },
+      { hint: 'cambiar, él — condicional', a: ['cambiaría', 'cambiaria'], exp: 'Hypothetical refusal → no cambiaría nada' },
+      { hint: 'estar — presente', a: ['está', 'esta'], exp: 'A plain present-tense fact inside the quote → está' },
+    ],
+  },
+  {
+    title: 'La entrevista de Marisol',
+    note: 'Thursday’s job interview: futures, and the conditional as future-of-the-past.',
+    text: 'Marisol tiene una entrevista el jueves. Esta noche {1} su presentación una vez más. Su amiga le dijo que {2} preguntas difíciles, así que Marisol {3} respuestas para todo. «Seguro que te {4} bien», le escribió su madre. Si consigue el puesto, {5} más cerca de casa y {6} los viernes libres. La empresa anunció que {7} a la persona elegida la próxima semana. Marisol {8} tener la respuesta ya.',
+    blanks: [
+      { hint: 'practicar, ella — futuro', a: ['practicará', 'practicara'], exp: 'infinitive + á: practicará' },
+      { hint: 'haber — condicional (future of the past)', a: ['habría', 'habria'], exp: '“said there WOULD BE hard questions” → habría' },
+      { hint: 'preparar, ella — pretérito', a: ['preparó', 'preparo'], exp: 'One completed preparation → preparó' },
+      { hint: 'ir — futuro', a: ['irá', 'ira'], exp: '“It will go well for you” → te irá bien' },
+      { hint: 'trabajar, ella — futuro', a: ['trabajará', 'trabajara'], exp: 'infinitive + á: trabajará' },
+      { hint: 'tener, ella — futuro', a: ['tendrá', 'tendra'], exp: 'Irregular stem tendr-: tendrá' },
+      { hint: 'llamar, ella — condicional (future of the past)', a: ['llamaría', 'llamaria'], exp: '“announced it WOULD call” → llamaría' },
+      { hint: 'querer, ella — condicional', a: ['querría', 'querria'], exp: 'Softened wish, irregular stem querr-: querría' },
+    ],
+  },
+  {
+    title: 'El misterio del pan',
+    note: 'A bakery stakeout: habits in the imperfect, one conditional of conjecture.',
+    text: 'Todas las mañanas, alguien se {1} el pan de la panadería antes de las seis. El panadero no {2} quién {3} ser. Una noche, se {4} despierto para vigilar. A las cinco, {5} una sombra pequeña por la ventana. ¡{6} el perro del cartero! El animal {7} el pan y se lo {8} a un gatito que vivía en la plaza. Desde entonces, el panadero deja dos panes fuera: uno para cada uno.',
+    blanks: [
+      { hint: 'llevar (se…) — imperfecto', a: ['llevaba'], exp: 'A repeated mystery = habit → se llevaba' },
+      { hint: 'saber — imperfecto', a: ['sabía', 'sabia'], exp: 'Ongoing state of not knowing → no sabía' },
+      { hint: 'poder — condicional', a: ['podría', 'podria'], exp: 'Conjecture (“who COULD it be”) → conditional: podría' },
+      { hint: 'quedar, él (se…) — pretérito', a: ['quedó', 'quedo'], exp: 'One decision, one night → se quedó despierto' },
+      { hint: 'ver, él — pretérito', a: ['vio'], exp: 'The plot point; vio needs no accent' },
+      { hint: 'ser — imperfecto', a: ['Era', 'era'], exp: 'Identifying the culprit → era el perro' },
+      { hint: 'tomar — imperfecto', a: ['tomaba'], exp: 'What it did every morning = habit → tomaba' },
+      { hint: 'dar — imperfecto', a: ['daba'], exp: 'Also habitual → se lo daba al gatito' },
+    ],
+  },
+  {
+    title: 'Los planes de la empresa',
+    note: 'A company announcement — reported futures become conditionals.',
+    text: 'La directora reunió a todo el equipo ayer. Anunció que la empresa {1} una oficina nueva en Fresno y que veinte personas {2} allí. Prometió que nadie {3} su trabajo. «El año próximo {4} el doble de clientes», dijo. Además, todos nosotros {5} trabajar desde casa dos días por semana. Mi compañero Luis me preguntó: «¿Tú qué {6}?». La verdad, yo preferiría esperar: primero {7} más detalles y después {8} mi decisión.',
+    blanks: [
+      { hint: 'abrir — condicional (future of the past)', a: ['abriría', 'abriria'], exp: '“announced it WOULD open” → abriría' },
+      { hint: 'trabajar, ellas — condicional (future of the past)', a: ['trabajarían', 'trabajarian'], exp: 'Reported future → trabajarían' },
+      { hint: 'perder — condicional (future of the past)', a: ['perdería', 'perderia'], exp: '“promised nobody WOULD lose” → perdería' },
+      { hint: 'tener, nosotros — futuro', a: ['tendremos'], exp: 'Direct quote, real future → tendremos (tendr-)' },
+      { hint: 'poder, nosotros — futuro', a: ['podremos'], exp: 'Irregular stem podr-: podremos' },
+      { hint: 'hacer, tú — condicional', a: ['harías', 'harias'], exp: 'Hypothetical question → harías' },
+      { hint: 'pedir, yo — condicional', a: ['pediría', 'pediria'], exp: 'My hypothetical plan → pediría' },
+      { hint: 'tomar, yo — condicional', a: ['tomaría', 'tomaria'], exp: 'Still hypothetical → tomaría' },
+    ],
+  },
+  {
+    title: 'Una noche en el camping',
+    note: 'A raccoon heist in the mountains — narrative past with a future punchline.',
+    text: 'El verano pasado, mis primos y yo {1} de camping a las montañas. {2} un lugar precioso, con un lago que {3} como un espejo. La primera noche, mientras nosotros {4} la cena, un mapache {5} nuestras salchichas. Mi primo Jorge {6} detrás de él, pero el animal {7} más rápido. Este año volveremos, y esta vez las salchichas {8} dentro de la tienda.',
+    blanks: [
+      { hint: 'ir, nosotros — pretérito', a: ['fuimos'], exp: 'One completed trip → fuimos' },
+      { hint: 'ser — imperfecto', a: ['Era', 'era'], exp: 'Scenery → era un lugar precioso' },
+      { hint: 'brillar — imperfecto', a: ['brillaba'], exp: 'Ongoing description → brillaba' },
+      { hint: 'preparar, nosotros — imperfecto', a: ['preparábamos', 'preparabamos'], exp: 'mientras + action in progress → preparábamos' },
+      { hint: 'robar — pretérito', a: ['robó', 'robo'], exp: 'The heist! One completed act → robó' },
+      { hint: 'correr — pretérito', a: ['corrió', 'corrio'], exp: 'The chase, one event → corrió' },
+      { hint: 'ser — imperfecto', a: ['era'], exp: 'Description of the raccoon → era más rápido' },
+      { hint: 'dormir, ellas — futuro', a: ['dormirán', 'dormiran'], exp: 'A plan for next time → future: dormirán' },
+    ],
+  },
+  {
+    title: 'El restaurante de la abuela',
+    note: 'Opening next month — including the future of probability (¿quién será?).',
+    text: 'Mi abuela abre su restaurante el mes que viene. «¿Cuánta gente {1} el primer día?», se pregunta todos los días. Yo calculo que {2} unas cincuenta personas. Anoche sonó el teléfono muy tarde. «¿Quién {3} a estas horas?», dijo mi abuela. {4} un periodista: quiere escribir sobre el restaurante. El artículo {5} el domingo. Con esa publicidad, mi abuela {6} que contratar más camareros. Dice que yo {7} el primero — aunque, con mi memoria, seguro que se me {8} todos los pedidos.',
+    blanks: [
+      { hint: 'venir — futuro', a: ['vendrá', 'vendra'], exp: 'Irregular stem vendr-: vendrá' },
+      { hint: 'haber — futuro', a: ['habrá', 'habra'], exp: 'There will be → habrá (habr-)' },
+      { hint: 'ser — futuro (a guess about right now)', a: ['será', 'sera'], exp: 'Future of probability: ¿quién será? = who can that be?' },
+      { hint: 'ser — imperfecto', a: ['Era', 'era'], exp: 'Identifying who it turned out to be → era un periodista' },
+      { hint: 'salir — futuro', a: ['saldrá', 'saldra'], exp: 'Irregular stem saldr-: saldrá el domingo' },
+      { hint: 'tener — futuro', a: ['tendrá', 'tendra'], exp: 'tendrá que contratar — obligation in the future' },
+      { hint: 'ser, yo — futuro', a: ['seré', 'sere'], exp: 'ser is regular in the future: seré' },
+      { hint: 'olvidar, ellos — futuro (probability)', a: ['olvidarán', 'olvidaran'], exp: 'A confident guess → se me olvidarán los pedidos' },
+    ],
+  },
+  {
+    title: 'El maratón de Dolores',
+    note: 'Aunt Dolores vs. the marathon: past decisions, future finish lines.',
+    text: 'Mi tía Dolores decidió el año pasado que {1} un maratón antes de cumplir sesenta años. Al principio, solo {2} correr diez minutos. Cada semana {3} un poco más lejos. Sus hijos pensaban que ella {4} pronto, pero no la conocían bien. El próximo domingo es la carrera. {5} más de cinco horas, seguramente, pero eso no importa: Dolores {6} la meta de todos modos. Después, toda la familia la {7} en el parque, con una tarta que ella misma {8} — ¡es la mejor pastelera del condado!',
+    blanks: [
+      { hint: 'correr, ella — condicional (future of the past)', a: ['correría', 'correria'], exp: '“decided she WOULD run” → correría' },
+      { hint: 'poder, ella — imperfecto', a: ['podía', 'podia'], exp: 'Ability as an ongoing state → podía' },
+      { hint: 'llegar, ella — imperfecto', a: ['llegaba'], exp: 'cada semana = repeated → llegaba' },
+      { hint: 'abandonar — condicional (future of the past)', a: ['abandonaría', 'abandonaria'], exp: '“thought she WOULD quit” → abandonaría' },
+      { hint: 'tardar, ella — futuro', a: ['tardará', 'tardara'], exp: 'Prediction → tardará' },
+      { hint: 'cruzar, ella — futuro', a: ['cruzará', 'cruzara'], exp: 'Prediction → cruzará la meta' },
+      { hint: 'esperar — futuro', a: ['esperará', 'esperara'], exp: 'infinitive + á: esperará' },
+      { hint: 'preparar — futuro', a: ['preparará', 'preparara'], exp: 'infinitive + á: preparará' },
+    ],
+  },
+);
+
+CLOZE_STORIES.b2.push(
+  {
+    title: 'La boda de mi prima',
+    note: 'A wedding speech assignment — wishes, doubts, and one confident future.',
+    text: 'Mi prima Inés se casa en octubre y quiere que yo {1} el discurso. Me pide que no {2} las historias vergonzosas de su infancia. Es curioso que la persona más habladora de la familia me {3} consejos sobre discursos. Sus padres esperan que la ceremonia {4} poco. Dudo que eso {5} posible: el novio también quiere hablar. Cuando ustedes {6} las fotos, entenderán por qué todos lloramos. Estoy seguro de que {7} un día inolvidable — aunque ojalá no {8} como en la boda de mi hermano. ¡Aquello fue el diluvio!',
+    blanks: [
+      { hint: 'escribir, yo — subjuntivo', a: ['escriba'], exp: 'quiere que (Wish) → subjunctive: escriba' },
+      { hint: 'contar, yo — subjuntivo', a: ['cuente'], exp: 'me pide que (Request) → cuente (o→ue survives)' },
+      { hint: 'dar, ella — subjuntivo', a: ['dé', 'de'], exp: 'Es curioso que (Emotion/judgment) → dé' },
+      { hint: 'durar — subjuntivo', a: ['dure'], exp: 'esperan que (Emotion/wish) → dure' },
+      { hint: 'ser — subjuntivo', a: ['sea'], exp: 'Dudo que (Doubt) → sea' },
+      { hint: 'ver, ustedes — subjuntivo', a: ['vean'], exp: 'cuando + future event → subjunctive: vean' },
+      { hint: 'ser — futuro', a: ['será', 'sera'], exp: '“Estoy seguro de que” = certainty → indicative: será' },
+      { hint: 'llover — subjuntivo', a: ['llueva'], exp: 'ojalá always → subjunctive: llueva (o→ue)' },
+    ],
+  },
+  {
+    title: 'El correo del jefe',
+    note: 'A memo from management — requests in the subjunctive, one asserted fact.',
+    text: 'Estimado equipo: Es necesario que todos {1} el informe antes del viernes. Les pido que {2} sus horas en el sistema nuevo, aunque {3} más lento — ya lo sé, ya lo sé. No pienso que el cambio {4} fácil, pero es imprescindible que la oficina {5} lista para la auditoría. Cuando el auditor {6}, quiero que no {7} ni un papel fuera de su sitio. Sé que ustedes {8} un equipo excelente. — La dirección.',
+    blanks: [
+      { hint: 'entregar, ustedes — subjuntivo', a: ['entreguen'], exp: 'Es necesario que → subjunctive; -gar keeps the hard g: entreguen' },
+      { hint: 'registrar, ustedes — subjuntivo', a: ['registren'], exp: 'Les pido que (Request) → registren' },
+      { hint: 'ser — subjuntivo', a: ['sea'], exp: 'aunque + conceded possibility (“even if it is slower”) → sea' },
+      { hint: 'resultar — subjuntivo', a: ['resulte'], exp: 'No pienso que (Doubt) → resulte' },
+      { hint: 'estar — subjuntivo', a: ['esté', 'este'], exp: 'es imprescindible que (Impersonal) → esté' },
+      { hint: 'llegar — subjuntivo', a: ['llegue'], exp: 'cuando + pending event → llegue (-gar → -gu-)' },
+      { hint: 'quedar — subjuntivo', a: ['quede'], exp: 'quiero que (Wish) → quede' },
+      { hint: 'ser, ustedes — indicativo', a: ['son'], exp: '“Sé que” asserts a fact → indicative: son' },
+    ],
+  },
+  {
+    title: 'Consejos para el examen oral',
+    note: 'Coaching a friend: advice takes the subjunctive, the pep talk stays indicative.',
+    text: 'Mañana tienes el examen oral. Te aconsejo que te {1} temprano y que {2} un buen desayuno. No es bueno que {3} toda la noche — el cerebro necesita descansar. Cuando el profesor te {4} la primera pregunta, respira antes de contestar. Si no entiendes algo, pídele que la {5}. Los examinadores no buscan a nadie que {6} perfecto; buscan estudiantes que se comuniquen. Me alegro de que te {7} en serio la preparación. ¡Ya verás que todo {8} bien!',
+    blanks: [
+      { hint: 'acostar, tú (te…) — subjuntivo', a: ['acuestes'], exp: 'Te aconsejo que (Recommendation) → te acuestes (o→ue)' },
+      { hint: 'comer, tú — subjuntivo', a: ['comas'], exp: 'Still under “te aconsejo que” → comas' },
+      { hint: 'estudiar, tú — subjuntivo', a: ['estudies'], exp: 'No es bueno que (Impersonal) → estudies' },
+      { hint: 'hacer — subjuntivo', a: ['haga'], exp: 'cuando + pending event → haga' },
+      { hint: 'repetir — subjuntivo', a: ['repita'], exp: 'pídele que (Request) → repita (e→i)' },
+      { hint: 'ser — subjuntivo', a: ['sea'], exp: 'Nonexistent antecedent (a nadie que…) → sea' },
+      { hint: 'tomar, tú — subjuntivo', a: ['tomes'], exp: 'Me alegro de que (Emotion) → te tomes' },
+      { hint: 'ir — futuro', a: ['irá', 'ira'], exp: '“Ya verás que” = certainty → indicative: irá bien' },
+    ],
+  },
+  {
+    title: 'El anuncio del aeropuerto',
+    note: 'Gate announcements: polite commands and a -zar → -ce spelling change.',
+    text: 'Señores pasajeros: Rogamos que {1} atentos a las pantallas. Es posible que el vuelo 218 {2} con retraso. Pedimos a los pasajeros de la fila 30 que {3} primero. No permitan que sus maletas {4} solas en ningún momento. Cuando el avión {5}, permanezcan sentados hasta que el capitán {6} la señal. Sabemos que este retraso no {7} agradable, y agradecemos que ustedes {8} tanta paciencia. Gracias por volar con nosotros.',
+    blanks: [
+      { hint: 'estar, ustedes — subjuntivo', a: ['estén', 'esten'], exp: 'Rogamos que (Request) → estén' },
+      { hint: 'salir — subjuntivo', a: ['salga'], exp: 'Es posible que (Doubt) → salga' },
+      { hint: 'subir, ustedes — subjuntivo', a: ['suban'], exp: 'Pedimos que (Request) → suban' },
+      { hint: 'quedar, ellas — subjuntivo', a: ['queden'], exp: 'No permitan que (Influence) → queden' },
+      { hint: 'aterrizar — subjuntivo', a: ['aterrice'], exp: 'cuando + pending event → aterrice (Car-Gar-Zar: -zar → -ce)' },
+      { hint: 'apagar — subjuntivo', a: ['apague'], exp: 'hasta que + pending event → apague (-gar → -gu-)' },
+      { hint: 'ser — indicativo', a: ['es'], exp: '“Sabemos que” asserts a fact → indicative: es' },
+      { hint: 'tener, ustedes — subjuntivo', a: ['tengan'], exp: 'agradecemos que (Emotion) → tengan' },
+    ],
+  },
+  {
+    title: 'La niñera nueva',
+    note: 'A want ad for a nanny — people who may not exist take the subjunctive.',
+    text: 'Buscamos una niñera que {1} experiencia con gemelos. Es fundamental que le {2} los niños — los nuestros son un huracán. Necesitamos a alguien que {3} cocinar y a quien no le {4} miedo nuestros dos perros. El primer día, cuando los niños {5} de la escuela, habrá pizza para todos. Preferimos que la candidata {6} cerca, pero no es obligatorio. Conocemos a una familia que {7} cinco años con la misma niñera — ojalá nosotros {8} la misma suerte.',
+    blanks: [
+      { hint: 'tener — subjuntivo', a: ['tenga'], exp: 'Nonspecific antecedent (whoever fits) → tenga' },
+      { hint: 'gustar — subjuntivo', a: ['gusten'], exp: 'Es fundamental que → subjunctive; los niños is the subject → gusten (plural)' },
+      { hint: 'saber — subjuntivo', a: ['sepa'], exp: 'Still a hypothetical person → sepa (irregular)' },
+      { hint: 'dar, ellos — subjuntivo', a: ['den'], exp: 'dar miedo: the dogs give fear → no le den miedo' },
+      { hint: 'volver, ellos — subjuntivo', a: ['vuelvan'], exp: 'cuando + future event → vuelvan (o→ue)' },
+      { hint: 'vivir — subjuntivo', a: ['viva'], exp: 'Preferimos que (Wish) → viva' },
+      { hint: 'llevar — indicativo', a: ['lleva'], exp: 'A real, specific family we know → indicative: lleva' },
+      { hint: 'tener, nosotros — subjuntivo', a: ['tengamos'], exp: 'ojalá always → subjunctive: tengamos' },
+    ],
+  },
+  {
+    title: 'El club de lectura',
+    note: 'Book-club rules — and a real novel that keeps the indicative.',
+    text: 'Bienvenidos al club de lectura. Este mes leemos una novela que {1} en Chile en los años setenta. Para la reunión, sugiero que cada persona {2} su pasaje favorito. No hace falta que {3} el libro entero si no tienen tiempo — pero me molesta que la gente {4} el final, ¡así que silencio! Buscamos socios nuevos que {5} otros géneros: poesía, teatro, lo que sea. Aunque la novela nos {6} tristes, la discusión siempre nos anima. Es evidente que este club {7} algo especial. Solo falta que alguien {8} galletas la próxima vez.',
+    blanks: [
+      { hint: 'ocurrir — indicativo', a: ['ocurre'], exp: 'A real, specific novel → indicative: ocurre' },
+      { hint: 'traer — subjuntivo', a: ['traiga'], exp: 'sugiero que (Recommendation) → traiga (traer → traig-)' },
+      { hint: 'terminar, ustedes — subjuntivo', a: ['terminen'], exp: 'No hace falta que (Impersonal) → terminen' },
+      { hint: 'contar — subjuntivo', a: ['cuente'], exp: 'me molesta que (Emotion) → cuente (o→ue)' },
+      { hint: 'conocer, ellos — subjuntivo', a: ['conozcan'], exp: 'Nonspecific members → conozcan (-zc-)' },
+      { hint: 'poner — subjuntivo', a: ['ponga'], exp: 'aunque + hypothetical (“even if it makes us sad”) → ponga' },
+      { hint: 'ser — indicativo', a: ['es'], exp: '“Es evidente que” = certainty → indicative: es' },
+      { hint: 'hacer — subjuntivo', a: ['haga'], exp: 'Solo falta que (pending) → haga' },
+    ],
+  },
+  {
+    title: 'Instrucciones del chef',
+    note: 'A kitchen at full boil: commands, hasta que, and one negative tú command.',
+    text: '¡Escuchen todos! Quiero que esta cocina {1} como un reloj. Marta: no {2} el pescado todavía; espera a que se {3} bien la sartén. Diego, te ruego que {4} los platos antes de servirlos — el cliente come primero con los ojos. Es imposible que nosotros {5} doscientas cenas sin organización. El crítico del periódico viene esta noche: no creo que {6} antes de las nueve, pero prefiero que todo {7} listo desde las ocho. ¡Y recuerden: nadie se va a casa hasta que el último cliente {8} contento!',
+    blanks: [
+      { hint: 'funcionar — subjuntivo', a: ['funcione'], exp: 'Quiero que (Wish) → funcione' },
+      { hint: 'poner, tú — imperativo negativo', a: ['pongas'], exp: 'Negative tú commands borrow the subjunctive: no pongas' },
+      { hint: 'calentar (se…) — subjuntivo', a: ['caliente'], exp: 'espera a que + pending → se caliente (e→ie)' },
+      { hint: 'limpiar, tú — subjuntivo', a: ['limpies'], exp: 'te ruego que (Request) → limpies' },
+      { hint: 'servir, nosotros — subjuntivo', a: ['sirvamos'], exp: 'Es imposible que (Impersonal) → sirvamos (e→i)' },
+      { hint: 'llegar — subjuntivo', a: ['llegue'], exp: 'no creo que (Doubt) → llegue' },
+      { hint: 'estar — subjuntivo', a: ['esté', 'este'], exp: 'prefiero que (Wish) → esté' },
+      { hint: 'salir — subjuntivo', a: ['salga'], exp: 'hasta que + pending event → salga contento' },
+    ],
+  },
+  {
+    title: 'La huerta comunitaria',
+    note: 'A neighborhood garden kicks off — volunteers wanted, subjunctive required.',
+    text: 'Vecinos: ya tenemos permiso para la huerta comunitaria. Ahora necesitamos voluntarios que {1} los sábados. No es necesario que ustedes {2} de jardinería; basta con las ganas. Recomendamos que cada familia {3} algo distinto: tomates, chiles, calabazas… Cuando las primeras verduras {4}, haremos una gran comida. Es una lástima que el terreno no {5} más grande, pero estamos seguros de que el proyecto {6} adelante. Pedimos que los perros se {7} fuera de la huerta y que nadie {8} sin guantes. ¡Manos a la obra!',
+    blanks: [
+      { hint: 'venir, ellos — subjuntivo', a: ['vengan'], exp: 'Nonspecific volunteers → vengan (venir → veng-)' },
+      { hint: 'saber, ustedes — subjuntivo', a: ['sepan'], exp: 'No es necesario que (Impersonal) → sepan' },
+      { hint: 'plantar — subjuntivo', a: ['plante'], exp: 'Recomendamos que (Recommendation) → plante' },
+      { hint: 'crecer, ellas — subjuntivo', a: ['crezcan'], exp: 'cuando + future event → crezcan (-zc-)' },
+      { hint: 'ser — subjuntivo', a: ['sea'], exp: 'Es una lástima que (Emotion) → sea' },
+      { hint: 'salir — futuro', a: ['saldrá', 'saldra'], exp: '“Estamos seguros de que” = certainty → indicative: saldrá adelante' },
+      { hint: 'quedar, ellos (se…) — subjuntivo', a: ['queden'], exp: 'Pedimos que (Request) → se queden' },
+      { hint: 'trabajar — subjuntivo', a: ['trabaje'], exp: 'que nadie… → subjunctive: trabaje' },
+    ],
+  },
+);
+
+CLOZE_STORIES.c1.push(
+  {
+    title: 'La disculpa',
+    note: 'A letter found ten years late — regret runs on the pluperfect subjunctive.',
+    text: 'Anoche encontré una carta que mi antiguo socio me {1} hace diez años y que yo nunca {2}. En ella me pedía que lo {3} por haber vendido su parte sin avisarme. Si la {4} entonces, nuestra amistad no se habría enfriado. Me escribió como si todavía {5} juntos en la oficina de la calle Once. Hoy lo llamé; me confesó que siempre {6} que yo lo odiaba. ¡Ojalá me lo {7} en persona aquel año! Para cuando cumplamos setenta, ya se nos {8} toda esta historia — al menos eso espero.',
+    blanks: [
+      { hint: 'escribir — pluscuamperfecto', a: ['había escrito', 'habia escrito'], exp: 'Written before last night → pluperfect: había escrito' },
+      { hint: 'abrir — pluscuamperfecto', a: ['había abierto', 'habia abierto'], exp: 'Irregular participle: había abierto' },
+      { hint: 'perdonar, yo — imperfecto de subjuntivo', a: ['perdonara'], exp: 'Past request → sequence of tenses: pedía que perdonara' },
+      { hint: 'leer, yo — pluscuamperfecto de subjuntivo', a: ['hubiera leído', 'hubiera leido'], exp: 'si + unreal past → hubiera leído' },
+      { hint: 'trabajar, nosotros — imperfecto de subjuntivo', a: ['trabajáramos', 'trabajaramos'], exp: 'como si + imperfect subjunctive, always → trabajáramos' },
+      { hint: 'creer — pluscuamperfecto', a: ['había creído', 'habia creido'], exp: 'A belief held before the confession → había creído' },
+      { hint: 'decir — pluscuamperfecto de subjuntivo', a: ['hubiera dicho'], exp: 'ojalá + regret about the past → hubiera dicho' },
+      { hint: 'olvidar — futuro perfecto', a: ['habrá olvidado', 'habra olvidado'], exp: 'Done before a future point → se nos habrá olvidado' },
+    ],
+  },
+  {
+    title: 'La beca',
+    note: 'A scholarship letter — layered pasts and one future-of-the-past prophecy.',
+    text: 'Cuando abrí el correo, supe que algo bueno {1}: nunca antes la universidad me {2} tan temprano. «Enhorabuena», decía. Al principio pensé que se {3} de persona. Si mis padres {4} vivos, habrían llorado de orgullo. Llamé a mi hermana para que {5} la primera en saberlo. Me dijo que no le sorprendía: «Siempre supe que lo {6}». El decano me pidió que {7} un discurso en septiembre. Quienquiera que {8} inventado las becas, le debo mi futuro.',
+    blanks: [
+      { hint: 'pasar — pluscuamperfecto', a: ['había pasado', 'habia pasado'], exp: 'It had happened before I opened the mail → había pasado' },
+      { hint: 'contactar — pluscuamperfecto', a: ['había contactado', 'habia contactado'], exp: 'nunca antes + past-before-past → había contactado' },
+      { hint: 'equivocar, ellos (se…) — pluscuamperfecto', a: ['habían equivocado', 'habian equivocado'], exp: 'pensé que se habían equivocado — a completed prior mistake' },
+      { hint: 'estar, ellos — imperfecto de subjuntivo', a: ['estuvieran', 'hubieran estado'], exp: 'si + unreal condition → estuvieran (or hubieran estado) vivos' },
+      { hint: 'ser, ella — imperfecto de subjuntivo', a: ['fuera'], exp: 'para que + past main verb → fuera' },
+      { hint: 'conseguir, tú — condicional', a: ['conseguirías', 'conseguirias'], exp: '“I always knew you WOULD get it” → future of the past: conseguirías' },
+      { hint: 'dar, yo — imperfecto de subjuntivo', a: ['diera'], exp: 'pidió que + past → diera' },
+      { hint: 'haber — subjuntivo (…inventado)', a: ['haya'], exp: 'quienquiera que → subjunctive: haya inventado' },
+    ],
+  },
+  {
+    title: 'El manuscrito',
+    note: 'An editor smells plagiarism — denials, unreal pasts, and a spreading scandal.',
+    text: 'La editora me advirtió que el manuscrito {1} problemas, pero no me dijo cuáles. Cuando llegué a la página cien, entendí: ¡el autor {2} el final de otra novela! Si yo no {3} tantas novelas policiacas, no lo habría notado nunca. Llamé al autor para que me lo {4}. Negó que {5} nada — «pura coincidencia», insistió, como si yo {6} ayer. Le respondí que, de haberlo sabido, jamás {7} el contrato. Para fin de mes, el escándalo ya {8} a todos los periódicos.',
+    blanks: [
+      { hint: 'tener — imperfecto', a: ['tenía', 'tenia'], exp: 'Reported ongoing state → tenía problemas' },
+      { hint: 'copiar — pluscuamperfecto', a: ['había copiado', 'habia copiado'], exp: 'Copied before I read it → había copiado' },
+      { hint: 'leer, yo — pluscuamperfecto de subjuntivo', a: ['hubiera leído', 'hubiera leido'], exp: 'si + unreal past → hubiera leído' },
+      { hint: 'explicar — imperfecto de subjuntivo', a: ['explicara'], exp: 'para que + past main verb → explicara' },
+      { hint: 'copiar — pluscuamperfecto de subjuntivo', a: ['hubiera copiado'], exp: 'Negó que + prior act → hubiera copiado' },
+      { hint: 'nacer, yo — pluscuamperfecto de subjuntivo', a: ['hubiera nacido'], exp: 'como si + unreal past → hubiera nacido ayer' },
+      { hint: 'firmar, yo — condicional perfecto', a: ['habría firmado', 'habria firmado'], exp: 'Unreal past result → jamás habría firmado' },
+      { hint: 'llegar — futuro perfecto', a: ['habrá llegado', 'habra llegado'], exp: 'Done before a future deadline → habrá llegado' },
+    ],
+  },
+  {
+    title: 'El ajedrecista',
+    note: 'Grandpa meets a nine-year-old chess prodigy — pride in layered pasts.',
+    text: 'Mi abuelo jugaba al ajedrez como si {1} las jugadas del rival antes que el propio rival. Nadie en el club {2} ganarle en veinte años — o eso presumía él. Un invierno llegó una niña de nueve años. Mi abuelo dudó que la pequeña {3} siquiera mover las piezas. Para la décima jugada, la niña ya le {4} la reina. Si el abuelo no {5} tan orgulloso, habría pedido tablas. Perdió, y confesó que jamás {6} tanto en una derrota. Hoy dice que, si volviera a nacer, {7} más a los niños. La niña, por cierto, {8} campeona nacional el año pasado — nadie se sorprendió.',
+    blanks: [
+      { hint: 'conocer — imperfecto de subjuntivo', a: ['conociera'], exp: 'como si + imperfect subjunctive, always → conociera' },
+      { hint: 'poder — pluscuamperfecto', a: ['había podido', 'habia podido'], exp: 'In twenty years, before that winter → había podido' },
+      { hint: 'saber — imperfecto de subjuntivo', a: ['supiera'], exp: 'dudó que + past → supiera' },
+      { hint: 'quitar — pluscuamperfecto', a: ['había quitado', 'habia quitado'], exp: 'ya + done before that point → había quitado' },
+      { hint: 'ser — pluscuamperfecto de subjuntivo', a: ['hubiera sido', 'fuera'], exp: 'si + unreal past → hubiera sido (or fuera) tan orgulloso' },
+      { hint: 'aprender — pluscuamperfecto', a: ['había aprendido', 'habia aprendido'], exp: 'confesó que jamás había aprendido — a prior-past experience' },
+      { hint: 'escuchar, él — condicional', a: ['escucharía', 'escucharia'], exp: 'si volviera… → conditional result: escucharía' },
+      { hint: 'ser — pretérito', a: ['fue'], exp: 'One completed achievement last year → fue campeona' },
+    ],
+  },
+  {
+    title: 'La crítica gastronómica',
+    note: 'A famous critic, a nervous kitchen, five stars — hypothesis all the way down.',
+    text: 'El chef estaba nervioso: era la primera vez que una crítica famosa {1} su restaurante. Habría preferido que ella {2} otro día — justo esa noche faltaba el sumiller. «Trátenla como si {3} una clienta cualquiera», ordenó. La crítica pidió el menú de degustación y no dijo palabra en dos horas. El chef habría jurado que la cena {4} un desastre. Una semana después, la reseña apareció: cinco estrellas. Decía que nunca {5} un arroz semejante y que ojalá más cocineros {6} con esa honestidad. El chef enmarcó la página. Si la crítica {7} aquella noche cuánto tembló el equipo, quizá {8} seis.',
+    blanks: [
+      { hint: 'visitar — imperfecto', a: ['visitaba'], exp: 'era la primera vez que + indicative imperfect → visitaba' },
+      { hint: 'venir — imperfecto de subjuntivo', a: ['viniera'], exp: 'Habría preferido que → viniera' },
+      { hint: 'ser — imperfecto de subjuntivo', a: ['fuera'], exp: 'como si always → fuera' },
+      { hint: 'ser — pluscuamperfecto', a: ['había sido', 'habia sido'], exp: 'habría jurado que + prior past → había sido' },
+      { hint: 'probar — pluscuamperfecto', a: ['había probado', 'habia probado'], exp: 'nunca + past-before-past → había probado' },
+      { hint: 'cocinar, ellos — imperfecto de subjuntivo', a: ['cocinaran'], exp: 'ojalá + unlikely present wish → imperfect subjunctive: cocinaran' },
+      { hint: 'saber — pluscuamperfecto de subjuntivo', a: ['hubiera sabido'], exp: 'si + unreal past → hubiera sabido' },
+      { hint: 'dar — condicional perfecto', a: ['habría dado', 'habria dado'], exp: 'Unreal past result → habría dado seis' },
+    ],
+  },
+  {
+    title: 'El vuelo perdido',
+    note: 'Missing a flight by five minutes — the luckiest disaster in this book.',
+    text: 'Perdí el vuelo por cinco minutos. Si el taxi {1} por la avenida, como le pedí, {2} a tiempo. La empleada me informó de que no {3} asientos libres hasta el jueves. Le rogué que me {4} en lista de espera. Mientras esperaba, conocí a una violinista que también {5} su vuelo. Hablamos como si nos {6} de toda la vida. Hoy es mi esposa. A veces pienso: si aquel taxista me {7} caso, jamás la {8}. Le mando flores al taxista cada aniversario.',
+    blanks: [
+      { hint: 'ir — pluscuamperfecto de subjuntivo', a: ['hubiera ido'], exp: 'si + unreal past → hubiera ido' },
+      { hint: 'llegar, yo — condicional perfecto', a: ['habría llegado', 'habria llegado'], exp: 'Unreal past result → habría llegado' },
+      { hint: 'haber — condicional (future of the past)', a: ['habría', 'habria'], exp: '“informed me there WOULD BE no seats” → habría' },
+      { hint: 'poner, ella — imperfecto de subjuntivo', a: ['pusiera'], exp: 'rogué que + past → pusiera' },
+      { hint: 'perder — pluscuamperfecto', a: ['había perdido', 'habia perdido'], exp: 'Missed before we met → había perdido' },
+      { hint: 'conocer, nosotros — imperfecto de subjuntivo', a: ['conociéramos', 'conocieramos'], exp: 'como si always → conociéramos' },
+      { hint: 'hacer — pluscuamperfecto de subjuntivo', a: ['hubiera hecho'], exp: 'si + unreal past → me hubiera hecho caso' },
+      { hint: 'conocer, yo — condicional perfecto', a: ['habría conocido', 'habria conocido'], exp: 'Unreal past result → jamás la habría conocido' },
+    ],
+  },
+  {
+    title: 'La casa de la colina',
+    note: 'A haunted bargain — rumors, unreal regrets, and a very polite ghost.',
+    text: 'Nadie quería comprar la casa de la colina. Los vecinos juraban que allí {1} cosas extrañas, aunque ninguno {2} nada con sus propios ojos. La agente nos advirtió que no {3} caso de los rumores. Mi esposa se enamoró del jardín en cuanto lo vio: «Quien {4} estas rosas sabía de belleza», dijo. Compramos la casa. Si hubiéramos creído a los vecinos, nos {5} la mejor decisión de nuestra vida. Claro que a veces, de noche, el piano suena solo. La antigua dueña {6} algo pendiente — es nuestra teoría. Le hemos pedido que {7} al menos algo alegre y, de momento, parece que la señora nos {8} caso. Vivimos todos en paz.',
+    blanks: [
+      { hint: 'pasar — imperfecto', a: ['pasaban'], exp: 'Reported ongoing happenings → pasaban' },
+      { hint: 'ver — pluscuamperfecto', a: ['había visto', 'habia visto'], exp: 'ninguno había visto nada — prior to the rumors' },
+      { hint: 'hacer, nosotros — imperfecto de subjuntivo', a: ['hiciéramos', 'hicieramos'], exp: 'advirtió que no… → hiciéramos caso' },
+      { hint: 'plantar — pretérito', a: ['plantó', 'planto'], exp: 'A specific completed act → plantó' },
+      { hint: 'perder, nosotros — condicional perfecto', a: ['habríamos perdido', 'habriamos perdido'], exp: 'Unreal past result → nos habríamos perdido' },
+      { hint: 'dejar — futuro perfecto (conjecture)', a: ['habrá dejado', 'habra dejado'], exp: 'A guess about the past → habrá dejado algo pendiente' },
+      { hint: 'tocar — subjuntivo', a: ['toque'], exp: 'hemos pedido que → toque (Car-Gar-Zar: -car → -que)' },
+      { hint: 'hacer — presente', a: ['hace'], exp: '“parece que” asserts → indicative: nos hace caso' },
+    ],
+  },
+  {
+    title: 'El discurso de jubilación',
+    note: 'Thirty years, one goodbye speech — every layer of the past says thanks.',
+    text: 'Treinta años en la empresa y jamás pensé que me {1} tanto irme. Cuando empecé, no sabía ni dónde se {2} las fotocopias. Mi primer jefe me trató como si no {3} nada — y, sinceramente, tenía razón. Con los años aprendí todo lo que él me {4}. Hoy me preguntan qué {5} de otra manera. Nada, respondo. Bueno, sí: {6} menos correos y más paseos. Les deseo que esta oficina {7} siendo su segunda casa. Y espero que, para la fiesta del viernes, alguien ya {8} mi tarta favorita — de tres chocolates, por si hay dudas.',
+    blanks: [
+      { hint: 'costar — condicional (future of the past)', a: ['costaría', 'costaria'], exp: '“never thought it WOULD be so hard” → costaría' },
+      { hint: 'hacer, ellas — imperfecto', a: ['hacían', 'hacian'], exp: 'se hacían las fotocopias — ongoing background' },
+      { hint: 'saber, yo — imperfecto de subjuntivo', a: ['supiera'], exp: 'como si always → supiera' },
+      { hint: 'enseñar — pretérito', a: ['enseñó', 'enseño'], exp: 'The teaching, viewed whole from today → enseñó' },
+      { hint: 'hacer, yo — condicional', a: ['haría', 'haria'], exp: 'Hypothetical do-over → haría' },
+      { hint: 'mandar, yo — condicional', a: ['mandaría', 'mandaria'], exp: 'Still hypothetical → mandaría menos correos' },
+      { hint: 'seguir — subjuntivo', a: ['siga'], exp: 'Les deseo que (Wish) → siga siendo' },
+      { hint: 'encargar — subjuntivo perfecto (haya…)', a: ['haya encargado'], exp: 'espero que + already done by then → haya encargado' },
+    ],
+  },
+);

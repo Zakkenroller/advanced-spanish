@@ -59,14 +59,14 @@ function getStats(level, topic) {
   return state.stats[k];
 }
 
-function recordAnswer(level, topic, ok) {
+function recordAnswer(level, topic, ok, hinted) {
   const s = getStats(level, topic);
   s.attempts++;
   if (ok) s.correct++;
   s.recent.push(ok ? 1 : 0);
   if (s.recent.length > 10) s.recent.shift();
   if (ok) {
-    state.xp += 10;
+    state.xp += hinted ? 5 : 10; // hinted answers earn half XP but keep the streak
     state.streak++;
   } else {
     state.streak = 0;
@@ -153,22 +153,75 @@ function conjugate(verb, tense, person) {
   return conjugateRegular(verb.inf, tense, person);
 }
 
+/* Weak-forms tracking: verb×tense combos you miss get drilled more often.
+   Weights rise on a miss (max 5) and fall on a hit; at 0 the combo returns
+   to the normal random rotation. */
+
+function drillWeights() {
+  if (!state.drillWeak) state.drillWeak = {};
+  return state.drillWeak;
+}
+
+function updateDrillWeak(key, ok) {
+  const w = drillWeights();
+  if (ok) {
+    if (w[key]) {
+      w[key]--;
+      if (w[key] <= 0) delete w[key];
+    }
+  } else {
+    w[key] = Math.min(5, (w[key] || 0) + 1);
+  }
+  save();
+}
+
+function weightedPick(keys, weights) {
+  const total = keys.reduce((sum, k) => sum + weights[k], 0);
+  let r = Math.random() * total;
+  for (const k of keys) {
+    r -= weights[k];
+    if (r <= 0) return k;
+  }
+  return keys[keys.length - 1];
+}
+
 function makeDrillQuestion(levelId) {
   const tenses = LEVEL_TENSES[levelId];
-  const tense = tenses[Math.floor(Math.random() * tenses.length)];
   // A1 sticks to regular verbs + ser/estar; higher levels mix in irregulars
   const pool = levelId === 'a1'
     ? REGULAR_VERBS.concat(IRREGULAR_VERBS.slice(0, 2))
     : REGULAR_VERBS.concat(IRREGULAR_VERBS);
-  const verb = pool[Math.floor(Math.random() * pool.length)];
+
+  // ~40% of questions revisit a weak verb×tense combo, weighted by miss count
+  let verb, tense;
+  const w = drillWeights();
+  const weakKeys = Object.keys(w).filter((k) => {
+    const [inf, t] = k.split('|');
+    return tenses.includes(t) && pool.some((v) => v.inf === inf);
+  });
+  if (weakKeys.length > 0 && Math.random() < 0.4) {
+    const [inf, t] = weightedPick(weakKeys, w).split('|');
+    verb = pool.find((v) => v.inf === inf);
+    tense = t;
+  } else {
+    tense = tenses[Math.floor(Math.random() * tenses.length)];
+    verb = pool[Math.floor(Math.random() * pool.length)];
+  }
+
   const person = Math.floor(Math.random() * 6);
   const answer = conjugate(verb, tense, person);
   const info = TENSE_INFO[tense];
+  const frame = pick(DRILL_FRAMES[tense]);
+  const comp = pick(VERB_COMPS[verb.inf]);
+  const subject = pick(PERSON_DISPLAY[person]);
   return {
     t: 'type',
-    q: `${PERSONS[person].label} ___ — <b>${verb.inf}</b> (${verb.en}), ${info.name} (${info.en})`,
+    q: `${frame.pre} ${subject} ___ ${comp}${frame.post}<br>
+      <small class="drill-hint"><b>${verb.inf}</b> (${verb.en}) — ${info.name} (${info.en})</small>`,
     a: [answer],
-    exp: `${PERSONS[person].label} + ${verb.inf} in the ${info.en}: ${answer}.`,
+    exp: `${frame.pre} ${subject} ${answer} ${comp}${frame.post} — ${verb.inf} in the ${info.en}.`,
+    _drill: `${verb.inf}|${tense}`,
+    _meta: { inf: verb.inf, tense, person },
   };
 }
 
@@ -416,10 +469,8 @@ function placementResult(answers) {
 
 // Draw n bank questions, never repeating one until the whole pool has been
 // seen (tracked per level:topic in localStorage).
-function bankSample(levelId, topicId, n) {
-  const bank = EXERCISES[levelId][topicId];
+function cycleSample(bank, key, n) {
   if (!state.seen) state.seen = {};
-  const key = statKey(levelId, topicId);
   const seenArr = state.seen[key] || [];
   const seen = new Set(seenArr);
   const fresh = bank.map((_, i) => i).filter((i) => !seen.has(i));
@@ -434,6 +485,10 @@ function bankSample(levelId, topicId, n) {
   }
   save();
   return idxs.map((i) => bank[i]);
+}
+
+function bankSample(levelId, topicId, n) {
+  return cycleSample(EXERCISES[levelId][topicId], statKey(levelId, topicId), n);
 }
 
 let session = null; // { mode, level, topic, questions, index, correct, answers, revealed }
@@ -458,6 +513,17 @@ function startSession(mode, levelId, topicId) {
     questions = sample(reviewDue(), 10)
       .map((r) => ({ ...r.q, _level: r.level, _topic: r.topic }));
     if (questions.length === 0) { renderHome(); return; }
+  } else if (mode === 'detective') {
+    questions = cycleSample(DETECTIVE[levelId], `${levelId}:detective`, 8);
+  } else if (mode === 'story') {
+    questions = cycleSample(CLOZE_STORIES[levelId], `${levelId}:story`, 1)
+      .map((st) => ({ ...st, t: 'cloze' }));
+  } else if (mode === 'workout') {
+    // Tense-focused interleave: interpretation + curated bank + generated drills
+    questions = shuffle(
+      cycleSample(DETECTIVE[levelId], `${levelId}:detective`, 3)
+        .concat(bankSample(levelId, 'tenses', 3))
+        .concat(makeDrillSet(levelId, 4)));
   } else {
     // 6 curated bank questions (cycled, no repeats) + 4 freshly generated
     const fromBank = bankSample(levelId, topicId, 6);
@@ -467,8 +533,148 @@ function startSession(mode, levelId, topicId) {
   session = {
     mode, level: levelId, topic: topicId,
     questions, index: 0, correct: 0, answers: [], revealed: false,
+    unitsTotal: 0, unitsCorrect: 0, // cloze counts blanks, not stories
   };
   renderPractice();
+}
+
+/* ---------- question flags ----------
+   Flags are kept in localStorage and, when the app is served from Netlify,
+   also POSTed to Netlify Forms (the hidden question-flag form in index.html).
+   Anywhere else (file://, other hosts) the fallback is a prefilled email. */
+
+const FLAG_EMAIL = 'aric.bright@gmail.com'; // maintainer; change or clear as needed
+const FLAG_REASONS = ['Wrong answer', 'Typo or accent error', 'Unnatural Spanish',
+  'Confusing explanation', 'Other'];
+
+function stripHtml(s) {
+  return String(s).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function postFlag(flag) {
+  if (!/^https?:$/.test(location.protocol)) return false;
+  try {
+    const body = new URLSearchParams({
+      'form-name': 'question-flag',
+      question: flag.question, answer: flag.answer, context: flag.context,
+      reason: flag.reason, comment: flag.comment, reporter: flag.reporter,
+    });
+    const res = await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function mailtoFlag(flag) {
+  const subject = encodeURIComponent('¡Adelante! question flag: ' + flag.reason);
+  const body = encodeURIComponent(
+    `Question: ${flag.question}\nExpected answer: ${flag.answer}\n` +
+    `Where: ${flag.context}\nReason: ${flag.reason}\nComment: ${flag.comment}\n` +
+    `Reported: ${flag.when}`);
+  return `mailto:${FLAG_EMAIL}?subject=${subject}&body=${body}`;
+}
+
+function flagWidget(container, info) {
+  const wrap = document.createElement('div');
+  wrap.className = 'flag-wrap';
+  wrap.innerHTML = '<button type="button" class="flag-link">🚩 Something wrong with this question?</button>';
+  container.appendChild(wrap);
+
+  wrap.querySelector('.flag-link').addEventListener('click', () => {
+    wrap.innerHTML = `
+      <div class="flag-form">
+        <select class="flag-reason" aria-label="Reason">
+          ${FLAG_REASONS.map((r) => `<option>${r}</option>`).join('')}
+        </select>
+        <input class="flag-comment" type="text" maxlength="200"
+               placeholder="Optional details…" aria-label="Details">
+        <button type="button" class="btn small primary flag-send">Send</button>
+      </div>`;
+    wrap.querySelector('.flag-send').addEventListener('click', async () => {
+      const flag = {
+        question: info.question, answer: info.answer, context: info.context,
+        reason: wrap.querySelector('.flag-reason').value,
+        comment: wrap.querySelector('.flag-comment').value.trim(),
+        reporter: (state.profile && state.profile.name) || 'anonymous',
+        when: new Date().toISOString(),
+      };
+      if (!state.flags) state.flags = [];
+      state.flags.push(flag);
+      if (state.flags.length > 200) state.flags.shift();
+      save();
+      wrap.innerHTML = '<p class="flag-done">Sending…</p>';
+      const sent = await postFlag(flag);
+      wrap.innerHTML = sent
+        ? '<p class="flag-done">🚩 ¡Gracias! Your report was sent.</p>'
+        : `<p class="flag-done">🚩 Saved on this device —
+             <a href="${mailtoFlag(flag)}">email it to the maintainer</a> so it's seen.</p>`;
+    });
+  });
+}
+
+/* ---------- profile (local for now; syncs to accounts later) ---------- */
+
+const AVATARS = ['🙂', '😎', '🤓', '🦉', '🐸', '🦊', '🐢', '🦜', '🐕', '🐱',
+  '🌵', '🌮', '🌶️', '🍇', '🍊', '☕', '🎸', '⚽', '🏄', '✈️', '🎨', '📚', '🌊', '⭐'];
+
+function profile() {
+  if (!state.profile) state.profile = { name: '', avatar: '🙂' };
+  return state.profile;
+}
+
+function openProfileModal() {
+  const p = profile();
+  $('#profile-name').value = p.name;
+  const grid = $('#avatar-grid');
+  grid.innerHTML = AVATARS.map((a) =>
+    `<button type="button" class="avatar-choice ${a === p.avatar ? 'selected' : ''}"
+       data-a="${a}">${a}</button>`).join('');
+  grid.querySelectorAll('.avatar-choice').forEach((b) => {
+    b.addEventListener('click', () => {
+      grid.querySelectorAll('.avatar-choice').forEach((x) => x.classList.remove('selected'));
+      b.classList.add('selected');
+    });
+  });
+  $('#profile-modal').classList.remove('hidden');
+  $('#profile-name').focus();
+}
+
+function saveProfile() {
+  const p = profile();
+  p.name = $('#profile-name').value.trim();
+  const sel = $('#avatar-grid .avatar-choice.selected');
+  if (sel) p.avatar = sel.dataset.a;
+  save();
+  $('#profile-modal').classList.add('hidden');
+  renderHeader();
+}
+
+/* ---------- share results ---------- */
+
+async function shareResults() {
+  const p = profile();
+  const headline = $('#results-headline').textContent;
+  const lvl = state.level ? levelById(state.level) : null;
+  const who = p.name ? `${p.avatar} ${p.name}` : p.avatar;
+  const where = /^https?:$/.test(location.protocol) ? ` ${location.origin}${location.pathname}` : '';
+  const text = `${who} — ${headline}` +
+    `${lvl ? ` (level ${lvl.cefr})` : ''} on ¡Adelante!, the Spanish grammar trainer.${where}`;
+  const btn = $('#share-btn');
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; } catch { /* user cancelled */ }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '✅ Copied!';
+  } catch {
+    btn.textContent = '📣 ' + text.slice(0, 40) + '…';
+  }
+  setTimeout(() => { btn.textContent = '📣 Share'; }, 2500);
 }
 
 /* ---------- rendering ---------- */
@@ -484,6 +690,10 @@ function renderHeader() {
   $('#streak').textContent = state.streak;
   const lvl = state.level ? levelById(state.level) : null;
   $('#current-level').textContent = lvl ? `${lvl.cefr} · ${lvl.name}` : 'No level set';
+  const p = profile();
+  const btn = $('#profile-btn');
+  btn.textContent = p.avatar;
+  btn.title = p.name ? `${p.name} — edit profile` : 'Set up your profile';
 }
 
 function renderHome() {
@@ -537,8 +747,9 @@ function renderHome() {
     }).join('') + `
       <div class="card topic-card drill-card">
         <div class="topic-head"><span class="topic-icon">🔥</span><h3>Conjugation Drill</h3></div>
-        <p class="topic-level-desc">Unlimited generated questions across every tense unlocked at
-          ${esc(lvl.cefr)}: ${LEVEL_TENSES[state.level].map((t) => TENSE_INFO[t].en).join(', ')}.</p>
+        <p class="topic-level-desc">Unlimited sentence-based questions across every tense unlocked
+          at ${esc(lvl.cefr)}: ${LEVEL_TENSES[state.level].map((t) => TENSE_INFO[t].en).join(', ')}.
+          Adapts to hit the verb–tense combos you miss.</p>
         <div class="card-actions">
           <button class="btn primary" data-drill="1">⚡ Start drill</button>
         </div>
@@ -580,7 +791,55 @@ function renderHome() {
     if (reviewBtn) reviewBtn.addEventListener('click', () => startSession('review', state.level, null));
   }
 
+  renderLab();
   show('#view-home');
+}
+
+function renderLab() {
+  const lab = $('#lab-cards');
+  const labSection = $('#lab-section');
+  if (!state.level) {
+    labSection.classList.add('hidden');
+    return;
+  }
+  labSection.classList.remove('hidden');
+  lab.innerHTML = `
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🧰</span><h3>Tense Toolkit</h3></div>
+      <p class="topic-level-desc">The timeline, photo-vs-video, trigger words, and every mnemonic:
+        SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO…</p>
+      <div class="card-actions"><button class="btn ghost" id="toolkit-btn">📖 Open toolkit</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🕵️</span><h3>Tense Detective</h3></div>
+      <p class="topic-level-desc">Don't conjugate — <i>interpret</i>. Decode who, when, and
+        whether it's done from the verb form alone.</p>
+      <div class="card-actions"><button class="btn primary" id="detective-btn">🔎 Investigate</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">📚</span><h3>Story Mode</h3></div>
+      <p class="topic-level-desc">Conjugate inside a real narrative — tenses live in stories,
+        not in isolated sentences. <b>${CLOZE_STORIES[state.level].length} stories</b> at this
+        level, and every miss gets a full explanation, an instant fix-it retype, and a spot
+        in your review queue.</p>
+      <div class="card-actions"><button class="btn primary" id="story-btn">📜 Read &amp; fill</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">💪</span><h3>Tense Workout</h3></div>
+      <p class="topic-level-desc">Interleaved set: detective questions, curated exercises, and
+        drills shuffled together — mixed practice beats blocked practice.</p>
+      <div class="card-actions"><button class="btn primary" id="workout-btn">🏋️ Mix it up</button></div>
+    </div>`;
+
+  $('#toolkit-btn').addEventListener('click', renderToolkit);
+  $('#detective-btn').addEventListener('click', () => startSession('detective', state.level, null));
+  $('#story-btn').addEventListener('click', () => startSession('story', state.level, null));
+  $('#workout-btn').addEventListener('click', () => startSession('workout', state.level, null));
+}
+
+function renderToolkit() {
+  $('#toolkit-body').innerHTML = TOOLKIT_HTML;
+  show('#view-toolkit');
 }
 
 function renderLesson(levelId, topicId) {
@@ -590,6 +849,262 @@ function renderLesson(levelId, topicId) {
   $('#lesson-body').innerHTML = LESSONS[levelId][topicId];
   $('#lesson-practice-btn').onclick = () => startSession('quiz', levelId, topicId);
   show('#view-lesson');
+}
+
+/* ---------- tense reference popup ----------
+   TENSE_REFERENCE (data.js) fuels two aids: tense names in question text
+   become clickable and open a reference card, and the 💡 hint ladder reuses
+   the same explanations and endings. */
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+let _tenseNames = null; // [{ name, key }], longest name first so
+                        // "imperfecto de subjuntivo" wins over "imperfecto"
+function tenseNameIndex() {
+  if (!_tenseNames) {
+    _tenseNames = [];
+    for (const [key, ref] of Object.entries(TENSE_REFERENCE)) {
+      for (const name of ref.names) _tenseNames.push({ name, key });
+    }
+    _tenseNames.sort((a, b) => b.name.length - a.name.length);
+  }
+  return _tenseNames;
+}
+
+function tenseKeyFromName(name) {
+  const n = stripAccents(String(name).trim().toLowerCase());
+  const hit = tenseNameIndex().find((t) => stripAccents(t.name.toLowerCase()) === n);
+  return hit ? hit.key : null;
+}
+
+const SPANISH_LETTER = /[a-záéíóúñü]/i;
+
+// Wrap known tense names in the given HTML with clickable buttons.
+// Skips anything inside tags; manual boundary check because \b is
+// unreliable next to accented characters.
+function linkifyTenses(html) {
+  const alts = tenseNameIndex().map((t) => escapeRegex(t.name)).join('|');
+  const re = new RegExp(`(<[^>]*>)|(${alts})`, 'gi');
+  return String(html).replace(re, (m, tag, name, offset, str) => {
+    if (tag) return tag;
+    const before = str[offset - 1] || '';
+    const after = str[offset + m.length] || '';
+    if (SPANISH_LETTER.test(before) || SPANISH_LETTER.test(after)) return m;
+    const key = tenseKeyFromName(name);
+    if (!key) return m;
+    return `<button type="button" class="tense-link" data-tense="${key}"
+      title="What is the ${esc(name)}? Click for a quick reference.">${m}</button>`;
+  });
+}
+
+function endingsTableHTML(endingsKey) {
+  const e = REGULAR_ENDINGS[endingsKey];
+  if (!e) return '';
+  if (e.all) {
+    return `<table class="endings-table">
+      ${PERSONS.map((p, i) =>
+        `<tr><td>${p.label}</td><td>infinitive + <b>-${e.all[i]}</b></td></tr>`).join('')}
+    </table>`;
+  }
+  return `<table class="endings-table">
+    <tr><th></th><th>-ar</th><th>-er</th><th>-ir</th></tr>
+    ${PERSONS.map((p, i) =>
+      `<tr><td>${p.label}</td><td>-${e.ar[i]}</td><td>-${e.er[i]}</td><td>-${e.ir[i]}</td></tr>`).join('')}
+  </table>`;
+}
+
+function openTenseModal(key) {
+  const ref = TENSE_REFERENCE[key];
+  if (!ref) return;
+  const en = ref.names[ref.names.length - 1];
+  $('#tense-modal-body').innerHTML = `
+    <h3>🕐 ${esc(ref.names[0])}${en !== ref.names[0] ? ` <small class="tense-en">(${esc(en)})</small>` : ''}</h3>
+    <p><b>What it is:</b> ${esc(ref.what)}</p>
+    <p><b>When to use it:</b> ${esc(ref.when)}</p>
+    ${ref.endings
+      ? `<p class="endings-title"><b>Regular endings${REGULAR_ENDINGS[ref.endings].all ? ' (attach to the whole infinitive)' : ''}:</b></p>
+         ${endingsTableHTML(ref.endings)}`
+      : `<p><b>How it's built:</b> ${esc(ref.formula)}.</p>`}
+    <p class="tense-irreg">⚠️ ${esc(ref.irregular)}</p>`;
+  $('#tense-modal').classList.remove('hidden');
+}
+
+/* ---------- progressive hints ----------
+   Stuck ≠ guess: the 💡 button climbs a ladder — concept nudge → the exact
+   ending (or 50/50 on multiple choice) → reveal-and-retype. Any hint halves
+   the XP for that question and sends it to the review queue. */
+
+const PERSON_PATTERNS = [
+  [0, /(?:^|[^a-záéíóúñü])yo(?![a-záéíóúñü])/i],
+  [1, /(?:^|[^a-záéíóúñü])tú(?![a-záéíóúñü])/i],
+  [2, /(?:^|[^a-záéíóúñü])(?:él|ella|usted)(?![a-záéíóúñü])/i],
+  [3, /(?:^|[^a-záéíóúñü])nosotr[oa]s(?![a-záéíóúñü])/i],
+  [4, /(?:^|[^a-záéíóúñü])vosotr[oa]s(?![a-záéíóúñü])/i],
+  [5, /(?:^|[^a-záéíóúñü])(?:ellos|ellas|ustedes)(?![a-záéíóúñü])/i],
+];
+
+function detectPerson(text) {
+  const found = PERSON_PATTERNS.filter(([, re]) => re.test(text)).map(([p]) => p);
+  return found.length === 1 ? found[0] : null;
+}
+
+function allVerbs() {
+  return REGULAR_VERBS.concat(IRREGULAR_VERBS);
+}
+
+// Figure out what a question is drilling: tense, verb, and person.
+// Drill questions carry structured _meta; static exercises embed
+// "(infinitive, tense)" in the prompt, so parse that; anything else
+// (pronoun/gender topics, detective) returns null → generic hints.
+function getHintMeta(q) {
+  if (q._meta) {
+    return {
+      tenseKey: q._meta.tense,
+      verb: allVerbs().find((v) => v.inf === q._meta.inf) || { inf: q._meta.inf },
+      person: q._meta.person,
+    };
+  }
+  const text = stripHtml(q.q);
+  const m = text.match(/\(([a-záéíóúñü]+)\s*,\s*([^)]+)\)/i);
+  if (!m) return null;
+  const tenseKey = tenseKeyFromName(m[2]);
+  if (!tenseKey || !TENSE_REFERENCE[tenseKey].endings) return null;
+  const inf = m[1].toLowerCase();
+  return {
+    tenseKey,
+    verb: allVerbs().find((v) => v.inf === inf) || { inf },
+    person: detectPerson(text),
+  };
+}
+
+function acceptedAnswers(q) {
+  return (q.t === 'mc' ? [q.c[q.a]] : q.a).map((a) => String(a).toLowerCase());
+}
+
+function conceptHintHTML(meta) {
+  const ref = TENSE_REFERENCE[meta.tenseKey];
+  let h = `<b>${esc(ref.names[0])}:</b> ${esc(ref.what)} ${esc(ref.when)}`;
+  if (meta.person != null) h += ` You need the <b>${PERSONS[meta.person].label}</b> form.`;
+  return linkifyTenses(h);
+}
+
+function endingHintHTML(meta, q) {
+  const { tenseKey, verb, person } = meta;
+  const ref = TENSE_REFERENCE[tenseKey];
+  const e = REGULAR_ENDINGS[tenseKey];
+  const type = verb.inf.slice(-2);
+
+  if (person != null) {
+    // Trust the data over verb lists: if the regular pattern produces an
+    // accepted answer, the verb behaves regularly in this slot.
+    const regular = conjugateRegular(verb.inf, tenseKey, person);
+    if (acceptedAnswers(q).includes(regular.toLowerCase())) {
+      return `${PERSONS[person].label} + ${e.all ? 'infinitive' : `-${type} verb`}
+        in the ${esc(ref.names[0])} → ${e.all
+          ? `add <b>-${e.all[person]}</b> to the whole infinitive`
+          : `stem + <b>-${e[type][person]}</b>`}.`;
+    }
+    return `⚠️ Ojo — <b>${esc(verb.inf)}</b> doesn't follow the regular pattern here.
+      ${esc(ref.irregular)}`;
+  }
+
+  // Person unknown: give the whole endings row for this verb type
+  const endings = e.all || e[type];
+  let h = `<b>-${type} ${esc(ref.names[0])} endings${e.all ? ' (on the infinitive)' : ''}:</b>
+    ${PERSONS.map((p, i) => `${p.label} <b>-${endings[i]}</b>`).join(' · ')}`;
+  if (verb.forms && verb.forms[tenseKey]) {
+    h += `<br>⚠️ Ojo — <b>${esc(verb.inf)}</b> is irregular in this tense. ${esc(ref.irregular)}`;
+  }
+  return h;
+}
+
+// Disable all but the correct choice and one random wrong one
+function fiftyFifty(q) {
+  const wrong = shuffle([...q.c.keys()].filter((i) => i !== q.a)).slice(0, q.c.length - 2);
+  document.querySelectorAll('.choice').forEach((btn, j) => {
+    if (wrong.includes(j)) {
+      btn.disabled = true;
+      btn.classList.add('eliminated');
+    }
+  });
+}
+
+// Level 3: show the answer, count it as a miss, and queue a retype so the
+// form still gets produced, not just seen (reuses the cloze fix-it flow).
+function revealAnswer(q) {
+  const s = session;
+  s.revealedByHint = true;
+  const answer = q.t === 'mc' ? q.c[q.a] : q.a[0];
+  if (q.t === 'mc') {
+    document.querySelectorAll('.choice').forEach((btn, j) => {
+      btn.disabled = true;
+      if (j === q.a) btn.classList.add('correct');
+    });
+  } else {
+    $('#type-input').disabled = true;
+    $('#type-submit').disabled = true;
+  }
+  s.questions.push({
+    t: 'type', _fix: true,
+    q: `🔧 Type it to lock it in: ${q.q}`,
+    a: q.t === 'mc' ? [answer] : q.a,
+    exp: q.exp,
+    _level: q._level, _topic: q._topic,
+  });
+  finishAnswer(false, q, null);
+}
+
+const HINT_LABELS = {
+  concept: '💡 Hint',
+  nudge: '💡 Hint',
+  ending: '💡 Another hint',
+  fifty: '➗ Remove two wrong answers',
+  reveal: '👀 Show the answer',
+};
+
+function hintAreaHTML() {
+  return `<div class="hint-area">
+    <button type="button" class="btn ghost small" id="hint-btn">💡 Hint</button>
+    <div id="hint-box"></div>
+  </div>`;
+}
+
+function wireHintButton(q) {
+  const btn = $('#hint-btn');
+  if (!btn) return;
+  const meta = getHintMeta(q);
+  const steps = q.t === 'mc'
+    ? (meta ? ['concept', 'fifty', 'reveal'] : ['fifty', 'reveal'])
+    : (meta ? ['concept', 'ending', 'reveal'] : ['nudge', 'reveal']);
+  btn.textContent = HINT_LABELS[steps[0]];
+
+  btn.addEventListener('click', () => {
+    const s = session;
+    if (s.revealed) return;
+    const step = steps[s.hintLevel];
+    s.hintLevel++;
+
+    const addHint = (html) => {
+      $('#hint-box').innerHTML += `<div class="hint-item">${html}</div>`;
+    };
+    if (step === 'concept') {
+      addHint(conceptHintHTML(meta));
+    } else if (step === 'ending') {
+      addHint(endingHintHTML(meta, q));
+    } else if (step === 'nudge') {
+      addHint(`Look for clue words in the sentence — time markers pick the tense,
+        and the subject picks the ending. Click any underlined tense name for
+        a refresher.`);
+    } else if (step === 'fifty') {
+      fiftyFifty(q);
+    } else {
+      revealAnswer(q);
+      return;
+    }
+    btn.textContent = HINT_LABELS[steps[s.hintLevel]];
+  });
 }
 
 const ACCENT_CHARS = ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü'];
@@ -604,25 +1119,42 @@ function renderPractice() {
   else if (s.mode === 'drill') title = `🔥 Conjugation drill — ${levelById(s.level).cefr}`;
   else if (s.mode === 'mixed') title = `🔀 Mixed practice — ${levelById(s.level).cefr}`;
   else if (s.mode === 'review') title = '⏰ Review queue';
+  else if (s.mode === 'detective') title = `🕵️ Tense Detective — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'story') title = `📚 Story Mode — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'workout') title = `💪 Tense Workout — ${levelById(s.level).cefr}`;
   else title = `${topicById(s.topic).icon} ${topicById(s.topic).name} — ${levelById(s.level).cefr}`;
   $('#practice-title').textContent = title;
   $('#practice-progress').textContent = `${s.index + 1} / ${total}`;
   $('#practice-bar').style.width = `${(s.index / total) * 100}%`;
 
+  s.hintLevel = 0;
+  s.revealedByHint = false;
+  // No hints during placement (it measures your level) or fix-it retypes
+  // (the answer was just shown)
+  const canHint = s.mode !== 'placement' && !q._fix;
+
   const box = $('#question-box');
+  if (q.t === 'cloze') {
+    renderCloze(q, box);
+    $('#next-btn').classList.add('hidden');
+    show('#view-practice');
+    return;
+  }
   if (q.t === 'mc') {
     box.innerHTML = `
-      <p class="question">${q.q}</p>
+      <p class="question">${linkifyTenses(q.q)}</p>
       <div class="choices">
         ${q.c.map((c, i) => `<button class="choice" data-i="${i}">${esc(c)}</button>`).join('')}
       </div>
+      ${canHint ? hintAreaHTML() : ''}
       <div id="feedback"></div>`;
     box.querySelectorAll('.choice').forEach((btn) => {
       btn.addEventListener('click', () => answerMC(parseInt(btn.dataset.i, 10)));
     });
+    if (canHint) wireHintButton(q);
   } else {
     box.innerHTML = `
-      <p class="question">${q.q}</p>
+      <p class="question">${linkifyTenses(q.q)}</p>
       <div class="type-row">
         <input id="type-input" type="text" autocomplete="off" autocapitalize="off"
                spellcheck="false" placeholder="Type your answer…" aria-label="Your answer">
@@ -631,7 +1163,9 @@ function renderPractice() {
       <div class="accent-row">
         ${ACCENT_CHARS.map((ch) => `<button class="accent-btn" data-ch="${ch}">${ch}</button>`).join('')}
       </div>
+      ${canHint ? hintAreaHTML() : ''}
       <div id="feedback"></div>`;
+    if (canHint) wireHintButton(q);
     const input = $('#type-input');
     input.focus();
     box.querySelectorAll('.accent-btn').forEach((b) => {
@@ -680,40 +1214,204 @@ function answerType() {
 function finishAnswer(ok, q, accentMiss) {
   const s = session;
   s.revealed = true;
+  const hinted = (s.hintLevel || 0) > 0;
+  const hintBtn = $('#hint-btn');
+  if (hintBtn) hintBtn.classList.add('hidden');
+
+  if (q._fix) {
+    // Fix-it retypes: the original miss already hit the stats and the review
+    // queue, so these only track the corrective round — and a wrong retype
+    // goes back in the queue until it's typed correctly.
+    s.fixTotal = (s.fixTotal || 0) + 1;
+    if (ok) s.fixCorrect = (s.fixCorrect || 0) + 1;
+    else s.questions.push({ ...q });
+    renderFeedback(ok, q, accentMiss);
+    return;
+  }
+
   s.answers.push({ level: q._level || s.level, ok });
   if (ok) s.correct++;
+  s.unitsTotal++;
+  if (ok) s.unitsCorrect++;
 
   if (s.mode !== 'placement') {
-    // Drill results count toward the tenses topic; mixed/review questions
+    // Tense-lab modes count toward the tenses topic; mixed/review questions
     // carry their own topic (and, in review, their own level)
-    const topic = q._topic || (s.mode === 'drill' ? 'tenses' : s.topic);
+    const labMode = ['drill', 'detective', 'workout'].includes(s.mode);
+    const topic = q._topic || (labMode ? 'tenses' : s.topic);
+    // A hinted success shouldn't ease off a weak verb×tense combo
+    if (q._drill) updateDrillWeak(q._drill, ok && !hinted);
     const level = q._level || s.level;
-    recordAnswer(level, topic, ok);
+    recordAnswer(level, topic, ok, hinted);
     if (s.mode === 'review') {
       updateReviewEntry(q, ok);
-    } else if (!ok) {
+    } else if (!ok || hinted) {
+      // Misses and hinted answers both resurface via the review queue
       addToReview(level, topic, q);
     }
     renderHeader();
   }
 
+  renderFeedback(ok, q, accentMiss);
+}
+
+function renderFeedback(ok, q, accentMiss) {
+  const s = session;
   const fb = $('#feedback');
   const answerTxt = q.t === 'mc' ? q.c[q.a] : q.a[0];
+  const hinted = (s.hintLevel || 0) > 0;
+  const expHtml = linkifyTenses(esc(q.exp || ''));
   let msg;
-  if (ok) {
-    msg = `<div class="fb ok">✅ <b>¡Correcto!</b> ${esc(q.exp || '')}</div>`;
+  if (s.revealedByHint) {
+    msg = `<div class="fb almost">💡 The answer is <b>${esc(answerTxt)}</b>. ${expHtml}</div>
+      <p class="cloze-fixnote">🔁 You'll type this one yourself before the results.</p>`;
+  } else if (ok) {
+    msg = `<div class="fb ok">✅ <b>¡Correcto!</b>${hinted
+      ? ' <span class="hint-xp">(+5 XP — hint used, so it joins your review queue)</span>' : ''}
+      ${expHtml}</div>`;
   } else if (accentMiss) {
     msg = `<div class="fb almost">🟡 <b>So close — check the accents.</b>
-      The answer is <b>${esc(answerTxt)}</b>. ${esc(q.exp || '')}</div>`;
+      The answer is <b>${esc(answerTxt)}</b>. ${expHtml}</div>`;
   } else {
-    msg = `<div class="fb bad">❌ The answer is <b>${esc(answerTxt)}</b>. ${esc(q.exp || '')}</div>`;
+    msg = `<div class="fb bad">❌ The answer is <b>${esc(answerTxt)}</b>. ${expHtml}</div>`;
+  }
+  if (q._fix && !ok) {
+    msg += `<p class="cloze-fixnote">🔁 No worries — this one comes back around
+      before the results.</p>`;
   }
   fb.innerHTML = msg;
+  flagWidget(fb, {
+    question: stripHtml(q.q),
+    answer: answerTxt,
+    context: `${s.mode || 'quiz'} · level ${q._level || s.level || '?'} · topic ${q._topic || s.topic || 'tenses'}`,
+  });
 
   const nextBtn = $('#next-btn');
   nextBtn.textContent = s.index + 1 < s.questions.length ? 'Next →' : 'See results';
   nextBtn.classList.remove('hidden');
   nextBtn.focus();
+}
+
+/* ---------- cloze (story mode) ---------- */
+
+function renderCloze(q, box) {
+  const html = esc(q.text).replace(/\{(\d+)\}/g, (_, n) => {
+    const b = q.blanks[parseInt(n, 10) - 1];
+    return `<span class="cloze-blank"><input type="text" data-b="${parseInt(n, 10) - 1}"
+      autocomplete="off" autocapitalize="off" spellcheck="false"
+      aria-label="Blank ${n}"><small class="cloze-hint">(${linkifyTenses(esc(b.hint))})</small></span>`;
+  });
+  box.innerHTML = `
+    <h3 class="cloze-title">${esc(q.title)}</h3>
+    <p class="cloze-note">${esc(q.note)}</p>
+    <p class="cloze-text">${html}</p>
+    <div class="accent-row">
+      ${ACCENT_CHARS.map((ch) => `<button class="accent-btn" data-ch="${ch}">${ch}</button>`).join('')}
+    </div>
+    <button class="btn primary" id="cloze-submit">Check the story</button>
+    <div id="feedback"></div>`;
+
+  let lastInput = box.querySelector('.cloze-blank input');
+  box.querySelectorAll('.cloze-blank input').forEach((inp) => {
+    inp.addEventListener('focus', () => { lastInput = inp; });
+  });
+  box.querySelectorAll('.accent-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (lastInput && !lastInput.disabled) {
+        lastInput.value += b.dataset.ch;
+        lastInput.focus();
+      }
+    });
+  });
+  $('#cloze-submit').addEventListener('click', () => answerCloze(q, box));
+}
+
+function answerCloze(q, box) {
+  const s = session;
+  if (s.revealed) return;
+  s.revealed = true;
+
+  const inputs = Array.from(box.querySelectorAll('.cloze-blank input'));
+  const misses = [];
+  let okCount = 0;
+  inputs.forEach((inp) => {
+    const i = parseInt(inp.dataset.b, 10);
+    const b = q.blanks[i];
+    const raw = inp.value.trim().toLowerCase();
+    const answers = b.a.map((a) => a.toLowerCase());
+    const ok = answers.includes(raw);
+    const accentMiss = !ok && answers.some((a) => stripAccents(a) === stripAccents(raw));
+    inp.disabled = true;
+    inp.classList.add(ok ? 'cloze-ok' : accentMiss ? 'cloze-almost' : 'cloze-bad');
+    if (ok) okCount++;
+    else misses.push({ n: i + 1, b, got: inp.value.trim(), accentMiss });
+
+    s.unitsTotal++;
+    if (ok) s.unitsCorrect++;
+    recordAnswer(s.level, 'tenses', ok);
+    if (!ok) {
+      // Each missed blank becomes a standalone type question in the queue
+      addToReview(s.level, 'tenses', {
+        t: 'type',
+        q: `${q.title}: «…${clozeContext(q.text, i + 1)}…» (${b.hint})`,
+        a: b.a, exp: b.exp,
+      });
+    }
+  });
+  renderHeader();
+
+  $('#cloze-submit').disabled = true;
+  const fb = box.querySelector('#feedback');
+  let msg = okCount === inputs.length
+    ? `<div class="fb ok">✅ <b>¡Historia perfecta!</b> Every blank correct.</div>`
+    : `<div class="fb ${okCount >= inputs.length / 2 ? 'almost' : 'bad'}">
+        You got <b>${okCount}/${inputs.length}</b>.</div>`;
+  if (misses.length) {
+    msg += `<div class="cloze-review">
+      <h4 class="cloze-review-head">Review your misses</h4>
+      <ol class="cloze-review-list">${misses.map(({ n, b, got, accentMiss }) => `
+        <li value="${n}">
+          <p class="cr-context">«…${esc(clozeContext(q.text, n))}…» <span class="cr-hint">(${esc(b.hint)})</span></p>
+          <p class="cr-line">${accentMiss ? '🟡' : '❌'} You wrote
+            <b class="cr-got">${got ? esc(got) : '(nothing)'}</b> →
+            <b class="cr-ans">${esc(b.a[0])}</b>${accentMiss ? ' — only the accent was off' : ''}</p>
+          <p class="cr-exp">${esc(b.exp)}</p>
+        </li>`).join('')}
+      </ol>
+      <p class="cloze-fixnote">🔧 Up next: retype each one correctly. They're also in
+        your <b>review queue</b> for the coming days.</p>
+    </div>`;
+
+    // Immediate fix-it round: each miss becomes a typed question, repeated
+    // at the end of the session until it's answered correctly.
+    const fixQs = misses.map(({ n, b }) => ({
+      t: 'type', _fix: true,
+      q: `🔧 Fix-it — ${esc(q.title)}: «…${esc(clozeContext(q.text, n))}…»
+        <span class="drill-hint">(${linkifyTenses(esc(b.hint))})</span>`,
+      a: b.a, exp: b.exp,
+    }));
+    s.questions.splice(s.index + 1, 0, ...fixQs);
+  }
+  fb.innerHTML = msg;
+  flagWidget(fb, {
+    question: `Story «${q.title}» (${s.level})`,
+    answer: q.blanks.map((b, i) => `${i + 1}. ${b.a[0]}`).join('; '),
+    context: `story · level ${s.level}`,
+  });
+
+  const nextBtn = $('#next-btn');
+  nextBtn.textContent = misses.length ? '🔧 Fix your mistakes →'
+    : s.index + 1 < s.questions.length ? 'Next →' : 'See results';
+  nextBtn.classList.remove('hidden');
+  nextBtn.focus();
+}
+
+function clozeContext(text, n) {
+  // A few words around blank {n}, for review-queue prompts
+  const idx = text.indexOf(`{${n}}`);
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(text.length, idx + 30);
+  return text.slice(start, end).replace(/\{(\d+)\}/g, '___').trim();
 }
 
 function nextQuestion() {
@@ -729,7 +1427,10 @@ function nextQuestion() {
 
 function renderResults() {
   const s = session;
-  const pct = Math.round((s.correct / s.questions.length) * 100);
+  // Cloze sessions count individual blanks; everything else counts questions
+  const total = s.unitsTotal || s.questions.length;
+  const good = s.unitsTotal ? s.unitsCorrect : s.correct;
+  const pct = Math.round((good / total) * 100);
   let headline, sub = '', actions = '';
 
   if (s.mode === 'placement') {
@@ -744,9 +1445,9 @@ function renderResults() {
       you can change it any time from the home screen.`;
   } else {
     headline = pct >= 80 ? `¡Excelente! ${pct}%` : pct >= 50 ? `¡Bien hecho! ${pct}%` : `Keep going — ${pct}%`;
-    sub = `You got ${s.correct} of ${s.questions.length}.`;
+    sub = `You got ${good} of ${total}.`;
 
-    const missed = s.questions.length - s.correct;
+    const missed = total - good;
     if (s.mode === 'review') {
       const due = reviewDue().length;
       sub += due > 0
@@ -756,10 +1457,15 @@ function renderResults() {
       sub += ` The ${missed} you missed ${missed === 1 ? 'is' : 'are'} in your
         <b>review queue</b> — hitting them again is how they stick.`;
     }
+    if (s.fixTotal) {
+      sub += ` 🔧 Fix-it round: <b>${s.fixCorrect}/${missed}</b> ${missed === 1 ? 'miss' : 'misses'}
+        retyped correctly${s.fixTotal > s.fixCorrect ? ` in ${s.fixTotal} tries` : ' on the first try'}.`;
+    }
 
     // Adaptive suggestion based on recent rolling accuracy
     // (single-topic modes only — mixed/review span topics and levels)
-    const topic = s.mode === 'drill' ? 'tenses' : s.topic;
+    const topic = ['drill', 'detective', 'story', 'workout'].includes(s.mode)
+      ? 'tenses' : s.topic;
     const acc = topic ? recentAccuracy(s.level, topic) : null;
     const idx = LEVELS.findIndex((l) => l.id === s.level);
     if (acc !== null && getStats(s.level, topic).recent.length >= 8) {
@@ -801,7 +1507,8 @@ function renderResults() {
     againBtn.textContent = '🏠 Home';
     againBtn.onclick = () => renderHome();
   } else {
-    againBtn.textContent = s.mode === 'review' ? '⏰ Review again' : '🔁 Practice again';
+    againBtn.textContent = s.mode === 'review' ? '⏰ Review again'
+      : s.mode === 'story' ? '📖 Retry the story' : '🔁 Practice again';
     againBtn.onclick = () => startSession(s.mode, state.level, s.topic);
   }
 
@@ -813,6 +1520,23 @@ function renderResults() {
 document.addEventListener('DOMContentLoaded', () => {
   $('#next-btn').addEventListener('click', nextQuestion);
   $('#placement-btn').addEventListener('click', () => startSession('placement', null, null));
+  $('#profile-btn').addEventListener('click', openProfileModal);
+  $('#profile-save').addEventListener('click', saveProfile);
+  $('#profile-close').addEventListener('click', () => $('#profile-modal').classList.add('hidden'));
+  $('#profile-modal').addEventListener('click', (e) => {
+    if (e.target === $('#profile-modal')) $('#profile-modal').classList.add('hidden');
+  });
+  // Tense-name links appear anywhere inside the question card (prompt,
+  // drill hints, cloze hints, feedback), so delegate from the container
+  $('#question-box').addEventListener('click', (e) => {
+    const link = e.target.closest('.tense-link');
+    if (link) openTenseModal(link.dataset.tense);
+  });
+  $('#tense-close').addEventListener('click', () => $('#tense-modal').classList.add('hidden'));
+  $('#tense-modal').addEventListener('click', (e) => {
+    if (e.target === $('#tense-modal')) $('#tense-modal').classList.add('hidden');
+  });
+  $('#share-btn').addEventListener('click', shareResults);
   document.querySelectorAll('.home-link').forEach((b) =>
     b.addEventListener('click', renderHome));
   $('#reset-btn').addEventListener('click', async () => {
