@@ -78,6 +78,55 @@ function recentAccuracy(level, topic) {
   return s.recent.reduce((a, b) => a + b, 0) / s.recent.length;
 }
 
+/* ---------- review queue (spaced repetition of missed questions) ----------
+   Leitner-lite: a miss lands in box 0 (due immediately). Answering it
+   correctly in review promotes it: box 1 → due in 1 day, box 2 → due in
+   3 days, box 3 → mastered (removed). A miss in review resets to box 0. */
+
+const REVIEW_MAX = 100;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function reviewQueue() {
+  if (!state.review) state.review = [];
+  return state.review;
+}
+
+function reviewDue() {
+  return reviewQueue().filter((r) => r.due <= Date.now());
+}
+
+function addToReview(levelId, topicId, q) {
+  const queue = reviewQueue();
+  const existing = queue.find((r) => r.q.q === q.q);
+  if (existing) {
+    existing.box = 0;
+    existing.due = Date.now();
+  } else {
+    const { _topic, _level, ...clean } = q;
+    queue.push({ level: levelId, topic: topicId, box: 0, due: Date.now(), q: clean });
+    if (queue.length > REVIEW_MAX) queue.shift();
+  }
+  save();
+}
+
+function updateReviewEntry(q, ok) {
+  const queue = reviewQueue();
+  const entry = queue.find((r) => r.q.q === q.q);
+  if (!entry) return;
+  if (ok) {
+    entry.box++;
+    if (entry.box >= 3) {
+      state.review = queue.filter((r) => r !== entry); // mastered
+    } else {
+      entry.due = Date.now() + (entry.box === 1 ? 1 : 3) * DAY_MS;
+    }
+  } else {
+    entry.box = 0;
+    entry.due = Date.now();
+  }
+  save();
+}
+
 /* ---------- conjugation drill generator ---------- */
 
 function conjugateRegular(inf, tense, person) {
@@ -393,6 +442,20 @@ function startSession(mode, levelId, topicId) {
     questions = makePlacementSet();
   } else if (mode === 'drill') {
     questions = makeDrillSet(levelId, 10);
+  } else if (mode === 'mixed') {
+    // interleaved practice: 2 bank + 2 generated per topic, shuffled together
+    questions = [];
+    for (const t of TOPICS) {
+      const fromBank = bankSample(levelId, t.id, 2).map((q) => ({ ...q, _topic: t.id }));
+      const generated = makeGenSet(levelId, t.id, 2, fromBank.map((q) => q.q))
+        .map((q) => ({ ...q, _topic: t.id }));
+      questions.push(...fromBank, ...generated);
+    }
+    questions = shuffle(questions);
+  } else if (mode === 'review') {
+    questions = sample(reviewDue(), 10)
+      .map((r) => ({ ...r.q, _level: r.level, _topic: r.topic }));
+    if (questions.length === 0) { renderHome(); return; }
   } else {
     // 6 curated bank questions (cycled, no repeats) + 4 freshly generated
     const fromBank = bankSample(levelId, topicId, 6);
@@ -477,7 +540,31 @@ function renderHome() {
         <div class="card-actions">
           <button class="btn primary" data-drill="1">⚡ Start drill</button>
         </div>
+      </div>` + (() => {
+      const due = reviewDue().length;
+      const total = reviewQueue().length;
+      const reviewTxt = total === 0
+        ? 'Miss a question anywhere and it lands here — it comes back after 1 and 3 days until you master it.'
+        : due === 0
+          ? `All caught up! ${total} question${total === 1 ? '' : 's'} scheduled for later.`
+          : `<b>${due} question${due === 1 ? '' : 's'} due</b> (${total} in the queue). Reviewing just before you forget is where learning sticks.`;
+      return `
+      <div class="card topic-card drill-card">
+        <div class="topic-head"><span class="topic-icon">🔀</span><h3>Mixed Practice</h3></div>
+        <p class="topic-level-desc">Tenses, pronouns, and gender interleaved in one session —
+          harder than practicing one topic at a time, and better for retention.</p>
+        <div class="card-actions">
+          <button class="btn primary" data-mixed="1">🔀 Start mixed session</button>
+        </div>
+      </div>
+      <div class="card topic-card drill-card">
+        <div class="topic-head"><span class="topic-icon">⏰</span><h3>Review Queue</h3></div>
+        <p class="topic-level-desc">${reviewTxt}</p>
+        <div class="card-actions">
+          ${due > 0 ? '<button class="btn primary" data-review="1">⏰ Review now</button>' : ''}
+        </div>
       </div>`;
+    })();
 
     cards.querySelectorAll('[data-lesson]').forEach((b) =>
       b.addEventListener('click', () => renderLesson(state.level, b.dataset.lesson)));
@@ -485,6 +572,10 @@ function renderHome() {
       b.addEventListener('click', () => startSession('quiz', state.level, b.dataset.practice)));
     const drillBtn = cards.querySelector('[data-drill]');
     if (drillBtn) drillBtn.addEventListener('click', () => startSession('drill', state.level, null));
+    const mixedBtn = cards.querySelector('[data-mixed]');
+    if (mixedBtn) mixedBtn.addEventListener('click', () => startSession('mixed', state.level, null));
+    const reviewBtn = cards.querySelector('[data-review]');
+    if (reviewBtn) reviewBtn.addEventListener('click', () => startSession('review', state.level, null));
   }
 
   show('#view-home');
@@ -509,6 +600,8 @@ function renderPractice() {
   let title;
   if (s.mode === 'placement') title = '🧭 Placement quiz';
   else if (s.mode === 'drill') title = `🔥 Conjugation drill — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'mixed') title = `🔀 Mixed practice — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'review') title = '⏰ Review queue';
   else title = `${topicById(s.topic).icon} ${topicById(s.topic).name} — ${levelById(s.level).cefr}`;
   $('#practice-title').textContent = title;
   $('#practice-progress').textContent = `${s.index + 1} / ${total}`;
@@ -589,8 +682,16 @@ function finishAnswer(ok, q, accentMiss) {
   if (ok) s.correct++;
 
   if (s.mode !== 'placement') {
-    // Drill results count toward the tenses topic
-    recordAnswer(s.level, s.mode === 'drill' ? 'tenses' : s.topic, ok);
+    // Drill results count toward the tenses topic; mixed/review questions
+    // carry their own topic (and, in review, their own level)
+    const topic = q._topic || (s.mode === 'drill' ? 'tenses' : s.topic);
+    const level = q._level || s.level;
+    recordAnswer(level, topic, ok);
+    if (s.mode === 'review') {
+      updateReviewEntry(q, ok);
+    } else if (!ok) {
+      addToReview(level, topic, q);
+    }
     renderHeader();
   }
 
@@ -643,9 +744,21 @@ function renderResults() {
     headline = pct >= 80 ? `¡Excelente! ${pct}%` : pct >= 50 ? `¡Bien hecho! ${pct}%` : `Keep going — ${pct}%`;
     sub = `You got ${s.correct} of ${s.questions.length}.`;
 
+    const missed = s.questions.length - s.correct;
+    if (s.mode === 'review') {
+      const due = reviewDue().length;
+      sub += due > 0
+        ? ` <b>${due}</b> still due — one more round?`
+        : ' Queue cleared for now. Correct answers come back in 1–3 days; answer each one right twice more and it graduates.';
+    } else if (missed > 0) {
+      sub += ` The ${missed} you missed ${missed === 1 ? 'is' : 'are'} in your
+        <b>review queue</b> — hitting them again is how they stick.`;
+    }
+
     // Adaptive suggestion based on recent rolling accuracy
+    // (single-topic modes only — mixed/review span topics and levels)
     const topic = s.mode === 'drill' ? 'tenses' : s.topic;
-    const acc = recentAccuracy(s.level, topic);
+    const acc = topic ? recentAccuracy(s.level, topic) : null;
     const idx = LEVELS.findIndex((l) => l.id === s.level);
     if (acc !== null && getStats(s.level, topic).recent.length >= 8) {
       if (acc >= 0.85 && idx < LEVELS.length - 1) {
@@ -682,8 +795,11 @@ function renderResults() {
   if (s.mode === 'placement') {
     againBtn.textContent = '🏠 Start learning';
     againBtn.onclick = () => renderHome();
+  } else if (s.mode === 'review' && reviewDue().length === 0) {
+    againBtn.textContent = '🏠 Home';
+    againBtn.onclick = () => renderHome();
   } else {
-    againBtn.textContent = '🔁 Practice again';
+    againBtn.textContent = s.mode === 'review' ? '⏰ Review again' : '🔁 Practice again';
     againBtn.onclick = () => startSession(s.mode, state.level, s.topic);
   }
 

@@ -37,6 +37,11 @@ your level for you.
 - **Conjugation drill** — unlimited generated questions across every tense unlocked
   at your level, mixing 22 regular verbs with 12 core irregulars (ser, estar, ir,
   tener, hacer, poder, querer, venir, decir, saber, poner, salir)
+- **Review queue (spaced repetition)** — every question you miss is scheduled for
+  review: due immediately, then 1 day and 3 days after each correct pass until it
+  graduates. Missing it again resets the clock
+- **Mixed practice** — tenses, pronouns, and gender interleaved in one 12-question
+  session, which is harder than blocked practice but better for long-term retention
 - **Adaptive difficulty** — the app tracks your rolling accuracy per topic and
   suggests moving up (≥85%) or reviewing a level down (≤50%)
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
