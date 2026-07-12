@@ -65,11 +65,15 @@ processing instruction, and interleaved retrieval practice):
   who, when, and whether it's finished from the verb form alone, the way
   processing-instruction research recommends. Sessions cycle through the pool
   without repeats
-- **Story Mode** — four cloze narratives per level (20 stories, 160 blanks), from
-  a market morning at A1 to a formal witness statement at C1, including
-  workplace scenes (a county office, a clinic front desk, a Napa grape harvest):
-  the imperfect paints the set, the preterite moves the plot. Stories cycle so
-  you always get the one you've seen least recently
+- **Story Mode** — twelve cloze narratives per level (60 stories, 480 blanks),
+  from a market morning at A1 to a haunted house and a retirement speech at C1,
+  including workplace scenes (a county office, a clinic front desk, a Napa grape
+  harvest): the imperfect paints the set, the preterite moves the plot. Stories
+  cycle so you always get the one you've seen least recently. Mistakes get the
+  full treatment: a per-blank review (what you typed vs. the correct form, in
+  context, with the rule), then an immediate **fix-it round** where you retype
+  every miss — repeating until you get each one right — and finally a spot in
+  the spaced-repetition review queue
 - **Tense Workout** — a tense-focused interleaved set: detective questions,
   curated exercises, and generated drills shuffled together
 

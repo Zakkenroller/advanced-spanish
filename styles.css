@@ -335,6 +335,22 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
 .cloze-misses { margin: .6rem 0 0 1.2rem; font-size: .9rem; }
 .cloze-misses li { margin: .25rem 0; }
 
+/* per-blank mistake review */
+.cloze-review { margin-top: .8rem; }
+.cloze-review-head { margin: 0 0 .4rem; font-size: .95rem; }
+.cloze-review-list { margin: 0 0 .6rem 1.2rem; padding: 0; }
+.cloze-review-list li {
+  margin: 0 0 .7rem; padding: .5rem .7rem;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+}
+.cloze-review-list p { margin: .15rem 0; font-size: .9rem; }
+.cr-context { color: var(--muted); font-style: italic; }
+.cr-hint { font-style: normal; font-size: .8rem; }
+.cr-got { color: var(--bad); text-decoration: line-through; }
+.cr-ans { color: var(--ok); }
+.cr-exp { color: var(--muted); }
+.cloze-fixnote { margin: .5rem 0 0; font-size: .88rem; color: var(--muted); }
+
 /* review card highlight */
 .review-due { border-color: var(--gold); }
 
