@@ -456,6 +456,17 @@ function startSession(mode, levelId, topicId) {
     questions = sample(reviewDue(), 10)
       .map((r) => ({ ...r.q, _level: r.level, _topic: r.topic }));
     if (questions.length === 0) { renderHome(); return; }
+  } else if (mode === 'detective') {
+    questions = sample(DETECTIVE[levelId], 8);
+  } else if (mode === 'story') {
+    questions = sample(CLOZE_STORIES[levelId], 1)
+      .map((st) => ({ ...st, t: 'cloze' }));
+  } else if (mode === 'workout') {
+    // Tense-focused interleave: interpretation + curated bank + generated drills
+    questions = shuffle(
+      sample(DETECTIVE[levelId], 3)
+        .concat(bankSample(levelId, 'tenses', 3))
+        .concat(makeDrillSet(levelId, 4)));
   } else {
     // 6 curated bank questions (cycled, no repeats) + 4 freshly generated
     const fromBank = bankSample(levelId, topicId, 6);
@@ -465,6 +476,7 @@ function startSession(mode, levelId, topicId) {
   session = {
     mode, level: levelId, topic: topicId,
     questions, index: 0, correct: 0, answers: [], revealed: false,
+    unitsTotal: 0, unitsCorrect: 0, // cloze counts blanks, not stories
   };
   renderPractice();
 }
@@ -578,7 +590,53 @@ function renderHome() {
     if (reviewBtn) reviewBtn.addEventListener('click', () => startSession('review', state.level, null));
   }
 
+  renderLab();
   show('#view-home');
+}
+
+function renderLab() {
+  const lab = $('#lab-cards');
+  const labSection = $('#lab-section');
+  if (!state.level) {
+    labSection.classList.add('hidden');
+    return;
+  }
+  labSection.classList.remove('hidden');
+  lab.innerHTML = `
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🧰</span><h3>Tense Toolkit</h3></div>
+      <p class="topic-level-desc">The timeline, photo-vs-video, trigger words, and every mnemonic:
+        SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO…</p>
+      <div class="card-actions"><button class="btn ghost" id="toolkit-btn">📖 Open toolkit</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🕵️</span><h3>Tense Detective</h3></div>
+      <p class="topic-level-desc">Don't conjugate — <i>interpret</i>. Decode who, when, and
+        whether it's done from the verb form alone.</p>
+      <div class="card-actions"><button class="btn primary" id="detective-btn">🔎 Investigate</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">📚</span><h3>Story Mode</h3></div>
+      <p class="topic-level-desc">Conjugate inside a real narrative — tenses live in stories,
+        not in isolated sentences.</p>
+      <div class="card-actions"><button class="btn primary" id="story-btn">📜 Read &amp; fill</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">💪</span><h3>Tense Workout</h3></div>
+      <p class="topic-level-desc">Interleaved set: detective questions, curated exercises, and
+        drills shuffled together — mixed practice beats blocked practice.</p>
+      <div class="card-actions"><button class="btn primary" id="workout-btn">🏋️ Mix it up</button></div>
+    </div>`;
+
+  $('#toolkit-btn').addEventListener('click', renderToolkit);
+  $('#detective-btn').addEventListener('click', () => startSession('detective', state.level, null));
+  $('#story-btn').addEventListener('click', () => startSession('story', state.level, null));
+  $('#workout-btn').addEventListener('click', () => startSession('workout', state.level, null));
+}
+
+function renderToolkit() {
+  $('#toolkit-body').innerHTML = TOOLKIT_HTML;
+  show('#view-toolkit');
 }
 
 function renderLesson(levelId, topicId) {
@@ -602,12 +660,21 @@ function renderPractice() {
   else if (s.mode === 'drill') title = `🔥 Conjugation drill — ${levelById(s.level).cefr}`;
   else if (s.mode === 'mixed') title = `🔀 Mixed practice — ${levelById(s.level).cefr}`;
   else if (s.mode === 'review') title = '⏰ Review queue';
+  else if (s.mode === 'detective') title = `🕵️ Tense Detective — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'story') title = `📚 Story Mode — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'workout') title = `💪 Tense Workout — ${levelById(s.level).cefr}`;
   else title = `${topicById(s.topic).icon} ${topicById(s.topic).name} — ${levelById(s.level).cefr}`;
   $('#practice-title').textContent = title;
   $('#practice-progress').textContent = `${s.index + 1} / ${total}`;
   $('#practice-bar').style.width = `${(s.index / total) * 100}%`;
 
   const box = $('#question-box');
+  if (q.t === 'cloze') {
+    renderCloze(q, box);
+    $('#next-btn').classList.add('hidden');
+    show('#view-practice');
+    return;
+  }
   if (q.t === 'mc') {
     box.innerHTML = `
       <p class="question">${q.q}</p>
@@ -680,11 +747,14 @@ function finishAnswer(ok, q, accentMiss) {
   s.revealed = true;
   s.answers.push({ level: q._level || s.level, ok });
   if (ok) s.correct++;
+  s.unitsTotal++;
+  if (ok) s.unitsCorrect++;
 
   if (s.mode !== 'placement') {
-    // Drill results count toward the tenses topic; mixed/review questions
+    // Tense-lab modes count toward the tenses topic; mixed/review questions
     // carry their own topic (and, in review, their own level)
-    const topic = q._topic || (s.mode === 'drill' ? 'tenses' : s.topic);
+    const labMode = ['drill', 'detective', 'workout'].includes(s.mode);
+    const topic = q._topic || (labMode ? 'tenses' : s.topic);
     const level = q._level || s.level;
     recordAnswer(level, topic, ok);
     if (s.mode === 'review') {
@@ -714,6 +784,100 @@ function finishAnswer(ok, q, accentMiss) {
   nextBtn.focus();
 }
 
+/* ---------- cloze (story mode) ---------- */
+
+function renderCloze(q, box) {
+  const html = esc(q.text).replace(/\{(\d+)\}/g, (_, n) => {
+    const b = q.blanks[parseInt(n, 10) - 1];
+    return `<span class="cloze-blank"><input type="text" data-b="${parseInt(n, 10) - 1}"
+      autocomplete="off" autocapitalize="off" spellcheck="false"
+      aria-label="Blank ${n}"><small class="cloze-hint">(${esc(b.hint)})</small></span>`;
+  });
+  box.innerHTML = `
+    <h3 class="cloze-title">${esc(q.title)}</h3>
+    <p class="cloze-note">${esc(q.note)}</p>
+    <p class="cloze-text">${html}</p>
+    <div class="accent-row">
+      ${ACCENT_CHARS.map((ch) => `<button class="accent-btn" data-ch="${ch}">${ch}</button>`).join('')}
+    </div>
+    <button class="btn primary" id="cloze-submit">Check the story</button>
+    <div id="feedback"></div>`;
+
+  let lastInput = box.querySelector('.cloze-blank input');
+  box.querySelectorAll('.cloze-blank input').forEach((inp) => {
+    inp.addEventListener('focus', () => { lastInput = inp; });
+  });
+  box.querySelectorAll('.accent-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (lastInput && !lastInput.disabled) {
+        lastInput.value += b.dataset.ch;
+        lastInput.focus();
+      }
+    });
+  });
+  $('#cloze-submit').addEventListener('click', () => answerCloze(q, box));
+}
+
+function answerCloze(q, box) {
+  const s = session;
+  if (s.revealed) return;
+  s.revealed = true;
+
+  const inputs = Array.from(box.querySelectorAll('.cloze-blank input'));
+  const misses = [];
+  let okCount = 0;
+  inputs.forEach((inp) => {
+    const i = parseInt(inp.dataset.b, 10);
+    const b = q.blanks[i];
+    const raw = inp.value.trim().toLowerCase();
+    const answers = b.a.map((a) => a.toLowerCase());
+    const ok = answers.includes(raw);
+    const accentMiss = !ok && answers.some((a) => stripAccents(a) === stripAccents(raw));
+    inp.disabled = true;
+    inp.classList.add(ok ? 'cloze-ok' : accentMiss ? 'cloze-almost' : 'cloze-bad');
+    if (ok) okCount++;
+    else misses.push({ n: i + 1, b });
+
+    s.unitsTotal++;
+    if (ok) s.unitsCorrect++;
+    recordAnswer(s.level, 'tenses', ok);
+    if (!ok) {
+      // Each missed blank becomes a standalone type question in the queue
+      addToReview(s.level, 'tenses', {
+        t: 'type',
+        q: `${q.title}: «…${clozeContext(q.text, i + 1)}…» (${b.hint})`,
+        a: b.a, exp: b.exp,
+      });
+    }
+  });
+  renderHeader();
+
+  $('#cloze-submit').disabled = true;
+  const fb = box.querySelector('#feedback');
+  let msg = okCount === inputs.length
+    ? `<div class="fb ok">✅ <b>¡Historia perfecta!</b> Every blank correct.</div>`
+    : `<div class="fb ${okCount >= inputs.length / 2 ? 'almost' : 'bad'}">
+        You got <b>${okCount}/${inputs.length}</b>.</div>`;
+  if (misses.length) {
+    msg += `<ul class="cloze-misses">${misses.map(({ n, b }) =>
+      `<li><b>${n}.</b> ${esc(b.a[0])} — ${esc(b.exp)}</li>`).join('')}</ul>`;
+  }
+  fb.innerHTML = msg;
+
+  const nextBtn = $('#next-btn');
+  nextBtn.textContent = s.index + 1 < s.questions.length ? 'Next →' : 'See results';
+  nextBtn.classList.remove('hidden');
+  nextBtn.focus();
+}
+
+function clozeContext(text, n) {
+  // A few words around blank {n}, for review-queue prompts
+  const idx = text.indexOf(`{${n}}`);
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(text.length, idx + 30);
+  return text.slice(start, end).replace(/\{(\d+)\}/g, '___').trim();
+}
+
 function nextQuestion() {
   const s = session;
   s.index++;
@@ -727,7 +891,10 @@ function nextQuestion() {
 
 function renderResults() {
   const s = session;
-  const pct = Math.round((s.correct / s.questions.length) * 100);
+  // Cloze sessions count individual blanks; everything else counts questions
+  const total = s.unitsTotal || s.questions.length;
+  const good = s.unitsTotal ? s.unitsCorrect : s.correct;
+  const pct = Math.round((good / total) * 100);
   let headline, sub = '', actions = '';
 
   if (s.mode === 'placement') {
@@ -742,9 +909,9 @@ function renderResults() {
       you can change it any time from the home screen.`;
   } else {
     headline = pct >= 80 ? `¡Excelente! ${pct}%` : pct >= 50 ? `¡Bien hecho! ${pct}%` : `Keep going — ${pct}%`;
-    sub = `You got ${s.correct} of ${s.questions.length}.`;
+    sub = `You got ${good} of ${total}.`;
 
-    const missed = s.questions.length - s.correct;
+    const missed = total - good;
     if (s.mode === 'review') {
       const due = reviewDue().length;
       sub += due > 0
@@ -757,7 +924,8 @@ function renderResults() {
 
     // Adaptive suggestion based on recent rolling accuracy
     // (single-topic modes only — mixed/review span topics and levels)
-    const topic = s.mode === 'drill' ? 'tenses' : s.topic;
+    const topic = ['drill', 'detective', 'story', 'workout'].includes(s.mode)
+      ? 'tenses' : s.topic;
     const acc = topic ? recentAccuracy(s.level, topic) : null;
     const idx = LEVELS.findIndex((l) => l.id === s.level);
     if (acc !== null && getStats(s.level, topic).recent.length >= 8) {
@@ -799,7 +967,8 @@ function renderResults() {
     againBtn.textContent = '🏠 Home';
     againBtn.onclick = () => renderHome();
   } else {
-    againBtn.textContent = s.mode === 'review' ? '⏰ Review again' : '🔁 Practice again';
+    againBtn.textContent = s.mode === 'review' ? '⏰ Review again'
+      : s.mode === 'story' ? '📖 Retry the story' : '🔁 Practice again';
     againBtn.onclick = () => startSession(s.mode, state.level, s.topic);
   }
 

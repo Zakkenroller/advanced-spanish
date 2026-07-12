@@ -47,6 +47,27 @@ your level for you.
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
   browser (localStorage); nothing leaves your machine
 
+## The Tense Lab
+
+The verb-tense side gets its own lab, built on findings from
+second-language-acquisition research (form-focused salience, VanPatten's
+processing instruction, and interleaved retrieval practice):
+
+- **Tense Toolkit** — a visual timeline of every tense, the photo-vs-video metaphor
+  for preterite/imperfect, trigger-word tables, and the classic mnemonics:
+  SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO, the Three Amigos, the 12 irregular
+  futures in three families, and Car-Gar-Zar
+- **Tense Detective** — interpretation exercises (8 per level): decode who, when,
+  and whether it's finished from the verb form alone, the way
+  processing-instruction research recommends
+- **Story Mode** — cloze narratives per level, so tense choice is practiced in
+  connected discourse: the imperfect paints the set, the preterite moves the plot
+- **Tense Workout** — a tense-focused interleaved set: detective questions,
+  curated exercises, and generated drills shuffled together
+
+Misses in every lab mode feed the same spaced-repetition review queue as the
+rest of the app.
+
 ## Running it
 
 No build step, no dependencies. Either open `index.html` directly in a browser, or
