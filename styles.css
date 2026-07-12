@@ -424,3 +424,39 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
 /* ---------- footer fine print ---------- */
 
 .fineprint { font-size: .75rem; color: var(--muted); margin-top: .8rem; }
+
+/* ---------- tense reference links & popup ---------- */
+
+.tense-link {
+  font: inherit; cursor: pointer;
+  background: none; border: none; padding: 0;
+  color: inherit;
+  text-decoration: underline dotted var(--brand);
+  text-decoration-thickness: 2px; text-underline-offset: 3px;
+}
+.tense-link:hover { color: var(--brand); }
+.tense-card { max-width: 30rem; }
+.tense-card h3 { margin-bottom: .5rem; }
+.tense-card p { margin: .45rem 0; font-size: .92rem; }
+.tense-en { color: var(--muted); font-weight: 400; font-size: .85rem; }
+.tense-irreg { color: var(--warn); font-size: .85rem; }
+.endings-title { margin-bottom: .2rem; }
+.endings-table {
+  border-collapse: collapse; font-size: .9rem; margin: .3rem 0 .5rem;
+}
+.endings-table th, .endings-table td {
+  border: 1px solid var(--line); padding: .25rem .6rem; text-align: left;
+}
+.endings-table th { color: var(--muted); font-weight: 600; }
+.endings-table td:first-child { color: var(--muted); }
+
+/* ---------- progressive hints ---------- */
+
+.hint-area { margin-top: .8rem; }
+.hint-item {
+  margin-top: .5rem; padding: .55rem .8rem;
+  background: var(--brand-soft); border-radius: 10px;
+  font-size: .88rem; line-height: 1.45;
+}
+.hint-xp { font-weight: 400; font-size: .82rem; }
+.choice.eliminated { opacity: .35; text-decoration: line-through; }

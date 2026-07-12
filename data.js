@@ -1072,6 +1072,91 @@ const TENSE_INFO = {
   imperfectSubj: { name: 'imperfecto de subjuntivo', en: 'imperfect subjunctive' },
 };
 
+/* Reference cards for each tense — one source of truth that fuels both the
+   💡 hint ladder and the popup opened by clicking a tense name anywhere in
+   a question. `endings` keys into REGULAR_ENDINGS (simple tenses); compound
+   tenses carry a `formula` string instead. `names` lists the strings (Spanish
+   first, English last) that become clickable in question text. */
+const TENSE_REFERENCE = {
+  present: {
+    names: ['presente', 'present'],
+    what: 'What happens now, in general, or as a habit — the default tense.',
+    when: 'Facts, routines, things happening right now. Triggers: ahora, hoy, siempre, normalmente, todos los días (about now).',
+    endings: 'present',
+    irregular: 'Common irregular yo-forms: tengo, hago, pongo, salgo, sé, voy, soy, estoy. Stem-changers: quiero (e→ie), puedo (o→ue), pido (e→i).',
+  },
+  preterite: {
+    names: ['pretérito', 'preterite'],
+    what: 'A completed past action — a photo: the flash freezes one finished moment.',
+    when: 'Single finished events; the actions that move a story forward. Triggers: ayer, anoche, el año pasado, una vez, de repente, entonces.',
+    endings: 'preterite',
+    irregular: 'Big irregulars: ser/ir → fui, estar → estuve, tener → tuve, hacer → hice, poder → pude. Spelling guards in yo: busqué, llegué, empecé.',
+  },
+  imperfect: {
+    names: ['imperfecto', 'imperfect'],
+    what: 'Ongoing or habitual past — a video already rolling in the background.',
+    when: 'Past descriptions, habits, time, age, weather, feelings; “used to” / “was …-ing”. Triggers: siempre, todos los días, mientras, de niño/a, cada verano.',
+    endings: 'imperfect',
+    irregular: 'Only three verbs are irregular: ser (era), ir (iba), ver (veía). Everything else is regular.',
+  },
+  future: {
+    names: ['futuro', 'future'],
+    what: 'What will happen — also educated guesses about the present (Serán las diez ≈ “it must be around ten”).',
+    when: 'Predictions and plans. Triggers: mañana, la próxima semana, el año que viene, dentro de…',
+    endings: 'future',
+    irregular: '12 irregular stems (endings never change): habr-, podr-, querr-, sabr-, cabr-, pondr-, saldr-, tendr-, vendr-, valdr-, dir-, har-.',
+  },
+  conditional: {
+    names: ['condicional', 'conditional'],
+    what: '“Would …” — hypotheticals, polite requests, and guesses about the past.',
+    when: 'Softened wishes (me gustaría…), unreal outcomes (iría si pudiera), politeness (¿podrías…?).',
+    endings: 'conditional',
+    irregular: 'Uses the same 12 irregular stems as the future: tendría, haría, diría, podría…',
+  },
+  presentSubj: {
+    names: ['presente de subjuntivo', 'present subjunctive'],
+    what: 'Not a time — an attitude: wished, doubted, or demanded, not stated as fact.',
+    when: 'After WEIRDO triggers: quiero que, es posible que, no creo que, ojalá, para que; also cuando + a future idea.',
+    endings: 'presentSubj',
+    irregular: 'Endings swap vowels (-ar → -e, -er/-ir → -a). Built on irregular yo-forms: tenga, haga, ponga; plus sea, vaya, esté, sepa, dé.',
+  },
+  imperfectSubj: {
+    names: ['imperfecto de subjuntivo', 'imperfect subjunctive'],
+    what: 'The subjunctive shifted into the past — wishes, doubts, and unreals about back then.',
+    when: 'After past-tense triggers (pidió que…, quería que…), como si…, and si-clauses: si tuviera más tiempo…',
+    endings: 'imperfectSubj',
+    irregular: 'Built on the ellos-preterite stem: tuvieron → tuviera, fueron → fuera, hicieron → hiciera.',
+  },
+  perfect: {
+    names: ['pretérito perfecto', 'perfecto', 'present perfect'],
+    what: 'Past that still touches now: he comido — “I have eaten.”',
+    when: 'Recent or still-relevant past. Triggers: ya, todavía no, alguna vez, este mes (Spain).',
+    formula: 'presente of haber (he, has, ha, hemos, habéis, han) + participle (-ado / -ido)',
+    irregular: 'Irregular participles: hecho, visto, escrito, dicho, puesto, vuelto, abierto, roto.',
+  },
+  pluperfect: {
+    names: ['pluscuamperfecto', 'pluperfect', 'past perfect'],
+    what: 'Done before another past moment: había comido — “I had (already) eaten.”',
+    when: 'The earlier of two past events: cuando llegaste, ya había salido.',
+    formula: 'imperfecto of haber (había, habías, había, habíamos, habíais, habían) + participle (-ado / -ido)',
+    irregular: 'Same irregular participles: hecho, visto, escrito, dicho, puesto, vuelto.',
+  },
+  futurePerfect: {
+    names: ['futuro perfecto', 'future perfect'],
+    what: 'Done before a future moment: habré comido — “I will have eaten.”',
+    when: 'Deadlines (para el lunes lo habré terminado) and guesses about the recent past (habrá llegado ya).',
+    formula: 'futuro of haber (habré, habrás, habrá, habremos, habréis, habrán) + participle (-ado / -ido)',
+    irregular: 'Same irregular participles: hecho, visto, escrito, dicho, puesto, vuelto.',
+  },
+  conditionalPerfect: {
+    names: ['condicional perfecto', 'conditional perfect'],
+    what: '“Would have …”: habría comido — the outcome that never happened.',
+    when: 'Unreal past results: si hubiera estudiado, habría aprobado.',
+    formula: 'condicional of haber (habría, habrías, habría, habríamos, habríais, habrían) + participle (-ado / -ido)',
+    irregular: 'Same irregular participles: hecho, visto, escrito, dicho, puesto, vuelto.',
+  },
+};
+
 // Which tenses each level drills
 const LEVEL_TENSES = {
   a1: ['present'],
