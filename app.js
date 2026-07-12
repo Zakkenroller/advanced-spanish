@@ -535,6 +535,145 @@ function startSession(mode, levelId, topicId) {
   renderPractice();
 }
 
+/* ---------- question flags ----------
+   Flags are kept in localStorage and, when the app is served from Netlify,
+   also POSTed to Netlify Forms (the hidden question-flag form in index.html).
+   Anywhere else (file://, other hosts) the fallback is a prefilled email. */
+
+const FLAG_EMAIL = 'aric.bright@gmail.com'; // maintainer; change or clear as needed
+const FLAG_REASONS = ['Wrong answer', 'Typo or accent error', 'Unnatural Spanish',
+  'Confusing explanation', 'Other'];
+
+function stripHtml(s) {
+  return String(s).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function postFlag(flag) {
+  if (!/^https?:$/.test(location.protocol)) return false;
+  try {
+    const body = new URLSearchParams({
+      'form-name': 'question-flag',
+      question: flag.question, answer: flag.answer, context: flag.context,
+      reason: flag.reason, comment: flag.comment, reporter: flag.reporter,
+    });
+    const res = await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function mailtoFlag(flag) {
+  const subject = encodeURIComponent('¡Adelante! question flag: ' + flag.reason);
+  const body = encodeURIComponent(
+    `Question: ${flag.question}\nExpected answer: ${flag.answer}\n` +
+    `Where: ${flag.context}\nReason: ${flag.reason}\nComment: ${flag.comment}\n` +
+    `Reported: ${flag.when}`);
+  return `mailto:${FLAG_EMAIL}?subject=${subject}&body=${body}`;
+}
+
+function flagWidget(container, info) {
+  const wrap = document.createElement('div');
+  wrap.className = 'flag-wrap';
+  wrap.innerHTML = '<button type="button" class="flag-link">🚩 Something wrong with this question?</button>';
+  container.appendChild(wrap);
+
+  wrap.querySelector('.flag-link').addEventListener('click', () => {
+    wrap.innerHTML = `
+      <div class="flag-form">
+        <select class="flag-reason" aria-label="Reason">
+          ${FLAG_REASONS.map((r) => `<option>${r}</option>`).join('')}
+        </select>
+        <input class="flag-comment" type="text" maxlength="200"
+               placeholder="Optional details…" aria-label="Details">
+        <button type="button" class="btn small primary flag-send">Send</button>
+      </div>`;
+    wrap.querySelector('.flag-send').addEventListener('click', async () => {
+      const flag = {
+        question: info.question, answer: info.answer, context: info.context,
+        reason: wrap.querySelector('.flag-reason').value,
+        comment: wrap.querySelector('.flag-comment').value.trim(),
+        reporter: (state.profile && state.profile.name) || 'anonymous',
+        when: new Date().toISOString(),
+      };
+      if (!state.flags) state.flags = [];
+      state.flags.push(flag);
+      if (state.flags.length > 200) state.flags.shift();
+      save();
+      wrap.innerHTML = '<p class="flag-done">Sending…</p>';
+      const sent = await postFlag(flag);
+      wrap.innerHTML = sent
+        ? '<p class="flag-done">🚩 ¡Gracias! Your report was sent.</p>'
+        : `<p class="flag-done">🚩 Saved on this device —
+             <a href="${mailtoFlag(flag)}">email it to the maintainer</a> so it's seen.</p>`;
+    });
+  });
+}
+
+/* ---------- profile (local for now; syncs to accounts later) ---------- */
+
+const AVATARS = ['🙂', '😎', '🤓', '🦉', '🐸', '🦊', '🐢', '🦜', '🐕', '🐱',
+  '🌵', '🌮', '🌶️', '🍇', '🍊', '☕', '🎸', '⚽', '🏄', '✈️', '🎨', '📚', '🌊', '⭐'];
+
+function profile() {
+  if (!state.profile) state.profile = { name: '', avatar: '🙂' };
+  return state.profile;
+}
+
+function openProfileModal() {
+  const p = profile();
+  $('#profile-name').value = p.name;
+  const grid = $('#avatar-grid');
+  grid.innerHTML = AVATARS.map((a) =>
+    `<button type="button" class="avatar-choice ${a === p.avatar ? 'selected' : ''}"
+       data-a="${a}">${a}</button>`).join('');
+  grid.querySelectorAll('.avatar-choice').forEach((b) => {
+    b.addEventListener('click', () => {
+      grid.querySelectorAll('.avatar-choice').forEach((x) => x.classList.remove('selected'));
+      b.classList.add('selected');
+    });
+  });
+  $('#profile-modal').classList.remove('hidden');
+  $('#profile-name').focus();
+}
+
+function saveProfile() {
+  const p = profile();
+  p.name = $('#profile-name').value.trim();
+  const sel = $('#avatar-grid .avatar-choice.selected');
+  if (sel) p.avatar = sel.dataset.a;
+  save();
+  $('#profile-modal').classList.add('hidden');
+  renderHeader();
+}
+
+/* ---------- share results ---------- */
+
+async function shareResults() {
+  const p = profile();
+  const headline = $('#results-headline').textContent;
+  const lvl = state.level ? levelById(state.level) : null;
+  const who = p.name ? `${p.avatar} ${p.name}` : p.avatar;
+  const where = /^https?:$/.test(location.protocol) ? ` ${location.origin}${location.pathname}` : '';
+  const text = `${who} — ${headline}` +
+    `${lvl ? ` (level ${lvl.cefr})` : ''} on ¡Adelante!, the Spanish grammar trainer.${where}`;
+  const btn = $('#share-btn');
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; } catch { /* user cancelled */ }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '✅ Copied!';
+  } catch {
+    btn.textContent = '📣 ' + text.slice(0, 40) + '…';
+  }
+  setTimeout(() => { btn.textContent = '📣 Share'; }, 2500);
+}
+
 /* ---------- rendering ---------- */
 
 function show(viewId) {
@@ -548,6 +687,10 @@ function renderHeader() {
   $('#streak').textContent = state.streak;
   const lvl = state.level ? levelById(state.level) : null;
   $('#current-level').textContent = lvl ? `${lvl.cefr} · ${lvl.name}` : 'No level set';
+  const p = profile();
+  const btn = $('#profile-btn');
+  btn.textContent = p.avatar;
+  btn.title = p.name ? `${p.name} — edit profile` : 'Set up your profile';
 }
 
 function renderHome() {
@@ -833,6 +976,11 @@ function finishAnswer(ok, q, accentMiss) {
     msg = `<div class="fb bad">❌ The answer is <b>${esc(answerTxt)}</b>. ${esc(q.exp || '')}</div>`;
   }
   fb.innerHTML = msg;
+  flagWidget(fb, {
+    question: stripHtml(q.q),
+    answer: answerTxt,
+    context: `${s.mode || 'quiz'} · level ${q._level || s.level || '?'} · topic ${q._topic || s.topic || 'tenses'}`,
+  });
 
   const nextBtn = $('#next-btn');
   nextBtn.textContent = s.index + 1 < s.questions.length ? 'Next →' : 'See results';
@@ -919,6 +1067,11 @@ function answerCloze(q, box) {
       `<li><b>${n}.</b> ${esc(b.a[0])} — ${esc(b.exp)}</li>`).join('')}</ul>`;
   }
   fb.innerHTML = msg;
+  flagWidget(fb, {
+    question: `Story «${q.title}» (${s.level})`,
+    answer: q.blanks.map((b, i) => `${i + 1}. ${b.a[0]}`).join('; '),
+    context: `story · level ${s.level}`,
+  });
 
   const nextBtn = $('#next-btn');
   nextBtn.textContent = s.index + 1 < s.questions.length ? 'Next →' : 'See results';
@@ -1036,6 +1189,13 @@ function renderResults() {
 document.addEventListener('DOMContentLoaded', () => {
   $('#next-btn').addEventListener('click', nextQuestion);
   $('#placement-btn').addEventListener('click', () => startSession('placement', null, null));
+  $('#profile-btn').addEventListener('click', openProfileModal);
+  $('#profile-save').addEventListener('click', saveProfile);
+  $('#profile-close').addEventListener('click', () => $('#profile-modal').classList.add('hidden'));
+  $('#profile-modal').addEventListener('click', (e) => {
+    if (e.target === $('#profile-modal')) $('#profile-modal').classList.add('hidden');
+  });
+  $('#share-btn').addEventListener('click', shareResults);
   document.querySelectorAll('.home-link').forEach((b) =>
     b.addEventListener('click', renderHome));
   $('#reset-btn').addEventListener('click', () => {
