@@ -122,14 +122,210 @@ function makeDrillQuestion(levelId) {
 }
 
 function makeDrillSet(levelId, n) {
+  return makeGenSet(levelId, 'tenses', n);
+}
+
+/* ---------- pronoun & gender question generators ---------- */
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Build an MC question: answer + 3 distractors from pool, shuffled
+function mcFrom(pool, answer, total = 4) {
+  const others = sample(pool.filter((x) => x !== answer), total - 1);
+  const c = shuffle([answer, ...others]);
+  return { c, a: c.indexOf(answer) };
+}
+
+function pluralizeNoun(w) {
+  if (w.endsWith('z')) return w.slice(0, -1) + 'ces';
+  if (w.endsWith('ón')) return w.slice(0, -2) + 'ones';
+  if (/[aeiouáéíóú]$/.test(w)) return w + 's';
+  return w + 'es';
+}
+
+function genGenderQuestion(levelId) {
+  if (levelId === 'c1') {
+    const pair = pick(GEN_PAIRS);
+    const useM = Math.random() < 0.5;
+    const meaning = useM ? pair.m : pair.f;
+    const exp = `el ${pair.w} = ${pair.m}; la ${pair.w} = ${pair.f}.`;
+    if (Math.random() < 0.5) {
+      return { t: 'mc', q: `___ ${pair.w} (${meaning})`, c: ['el', 'la'], a: useM ? 0 : 1, exp };
+    }
+    return { t: 'mc', q: `___ ${pair.w} (${meaning} — “a/an”)`, c: ['un', 'una'], a: useM ? 0 : 1, exp };
+  }
+
+  const noun = pick(GEN_NOUNS[levelId]);
+  const fem = noun.g === 'f';
+  const why = noun.why ? ` — ${noun.why}` : '';
+  const kind = pick(['article', 'un', 'plural', 'adj']);
+
+  if (kind === 'article') {
+    const answer = noun.ela ? 'el' : (fem ? 'la' : 'el');
+    const exp = noun.ela
+      ? `${noun.w} (${noun.en}) starts with a stressed a-/ha- → el ${noun.w}, but it stays feminine.`
+      : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why}: ${answer} ${noun.w}.`;
+    return { t: 'mc', q: `___ ${noun.w}`, c: ['el', 'la', 'los', 'las'], a: answer === 'el' ? 0 : 1, exp };
+  }
+  if (kind === 'un') {
+    const answer = noun.ela ? 'un' : (fem ? 'una' : 'un');
+    const exp = noun.ela
+      ? `${noun.w} (${noun.en}): un also replaces una before stressed a-/ha- — un ${noun.w} (still feminine).`
+      : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why}: ${answer} ${noun.w}.`;
+    return { t: 'mc', q: `___ ${noun.w} (a/an)`, c: ['un', 'una', 'unos', 'unas'], a: answer === 'un' ? 0 : 1, exp };
+  }
+  if (kind === 'plural') {
+    const pl = pluralizeNoun(noun.w);
+    const exp = noun.ela
+      ? `The el is singular-only; the plural is regular feminine: las ${pl}.`
+      : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why}: ${fem ? 'las' : 'los'} ${pl}.`;
+    return { t: 'mc', q: `___ ${pl} (the — plural)`, c: ['los', 'las', 'el', 'la'], a: fem ? 1 : 0, exp };
+  }
+  // adjective agreement, singular
+  const adj = pick(GEN_ADJECTIVES);
+  const art = noun.ela ? 'el' : (fem ? 'la' : 'el');
+  const answer = adj.base + (fem ? 'a' : 'o');
+  const c = [adj.base + 'o', adj.base + 'a', adj.base + 'os', adj.base + 'as'];
+  const exp = noun.ela
+    ? `${noun.w} is feminine even though it takes el → ${answer}.`
+    : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why} → ${answer}.`;
+  return { t: 'mc', q: `${art} ${noun.w} ___ (${adj.en})`, c, a: fem ? 1 : 0, exp };
+}
+
+function genPronounQuestion(levelId) {
+  const r = Math.random();
+
+  if (levelId === 'a1') {
+    if (r < 0.4) {
+      const g = pick(['m', 'f']);
+      const name = pick(GEN_NAMES[g]);
+      const answer = g === 'm' ? 'él' : 'ella';
+      const { c, a } = mcFrom(['él', 'ella', 'ellos', 'ellas'], answer, 4);
+      return { t: 'mc', q: `${name} = ___`, c, a,
+        exp: `${name} is one ${g === 'm' ? 'man' : 'woman'} (spoken about) → ${answer}.` };
+    }
+    if (r < 0.8) {
+      const g1 = pick(['m', 'f']); const g2 = pick(['m', 'f']);
+      const n1 = pick(GEN_NAMES[g1]);
+      let n2 = pick(GEN_NAMES[g2]);
+      while (n2 === n1) n2 = pick(GEN_NAMES[g2]);
+      const allF = g1 === 'f' && g2 === 'f';
+      const answer = allF ? 'ellas' : 'ellos';
+      const { c, a } = mcFrom(['él', 'ella', 'ellos', 'ellas'], answer, 4);
+      return { t: 'mc', q: `${n1} y ${n2} = ___`, c, a,
+        exp: allF ? 'An all-female group (spoken about) → ellas.'
+                  : 'A group with at least one man (spoken about) → ellos.' };
+    }
+    const name = pick(GEN_NAMES.m);
+    const { c, a } = mcFrom(['nosotros', 'vosotros', 'ellos', 'ustedes'], 'nosotros', 4);
+    return { t: 'mc', q: `${name} y yo = ___`, c, a,
+      exp: 'Any group that includes “yo” → nosotros.' };
+  }
+
+  if (levelId === 'a2') {
+    if (r < 0.5) {
+      // direct-object replacement
+      const noun = pick(GEN_NOUNS.a1.concat(GEN_NOUNS.a2));
+      const fem = noun.g === 'f';
+      const plural = Math.random() < 0.4;
+      const w = plural ? pluralizeNoun(noun.w) : noun.w;
+      const art = plural ? (fem ? 'las' : 'los') : (fem ? 'la' : 'el');
+      const v = pick(GEN_TRANSITIVES);
+      const answer = plural ? (fem ? 'Las' : 'Los') : (fem ? 'La' : 'Lo');
+      const c = ['Lo', 'La', 'Los', 'Las'];
+      return { t: 'mc', q: `“${v} ${art} ${w}.” → “___ ${v.toLowerCase()}.”`, c, a: c.indexOf(answer),
+        exp: `${art} ${w} = ${fem ? 'feminine' : 'masculine'} ${plural ? 'plural' : 'singular'} → ${answer.toLowerCase()}.` };
+    }
+    // reflexive pronoun by person
+    const person = Math.floor(Math.random() * 6);
+    const verb = pick(GEN_REFLEXIVES);
+    const form = conjugateRegular(verb.inf, 'present', person);
+    const answer = REFLEXIVE_PRONOUNS[person];
+    const { c, a } = mcFrom(['me', 'te', 'se', 'nos', 'os'], answer, 4);
+    return { t: 'mc', q: `${PERSONS[person].label} ___ ${form}. (${verb.inf}se — ${verb.en})`, c, a,
+      exp: `Reflexive with ${PERSONS[person].label} → ${answer}: ${answer} ${form}.` };
+  }
+
+  if (levelId === 'b1') {
+    if (r < 0.5) {
+      // gustar-type verbs
+      const per = pick(GEN_GUSTAR.persons);
+      const v = pick(GEN_GUSTAR.verbs);
+      const plural = Math.random() < 0.5;
+      const item = plural ? pick(GEN_GUSTAR.itemsPl) : pick(GEN_GUSTAR.itemsSg);
+      const vf = plural ? v.pl : v.sg;
+      const { c, a } = mcFrom(['me', 'te', 'le', 'nos', 'os', 'les'], per.pr, 4);
+      return { t: 'mc', q: `${per.p} ___ ${vf} ${item}.`, c, a,
+        exp: `${v.inf} works like gustar — indirect object pronoun: ${per.p.toLowerCase()} ${per.pr} ${vf}.` };
+    }
+    // double object: le/les + lo/la/los/las → se lo/la/los/las
+    // (inanimate nouns only — “Mando el perro a María” reads strangely)
+    const noun = pick(GEN_NOUNS.a1.filter((n) => n.w !== 'gato' && n.w !== 'perro'));
+    const fem = noun.g === 'f';
+    const plural = Math.random() < 0.4;
+    const w = plural ? pluralizeNoun(noun.w) : noun.w;
+    const art = plural ? (fem ? 'las' : 'los') : (fem ? 'la' : 'el');
+    const give = pick(GEN_GIVE_VERBS);
+    const rec = pick(GEN_RECIPIENTS);
+    const doP = plural ? (fem ? 'las' : 'los') : (fem ? 'la' : 'lo');
+    const cap = give.charAt(0).toUpperCase() + give.slice(1);
+    const c = ['Se lo', 'Se la', 'Se los', 'Se las'];
+    return { t: 'mc', q: `“${cap} ${art} ${w} a ${rec}.” → “___ ${give}.”`, c, a: c.indexOf(`Se ${doP}`),
+      exp: `le/les + ${doP} is forbidden → se ${doP}: Se ${doP} ${give}.` };
+  }
+
+  if (levelId === 'b2') {
+    if (r < 0.34) {
+      // passive se: verb agrees with the noun
+      const v = pick(GEN_SE_PASSIVE.verbs);
+      const plural = Math.random() < 0.5;
+      const item = plural ? pick(GEN_SE_PASSIVE.itemsPl) : pick(GEN_SE_PASSIVE.itemsSg);
+      return { t: 'mc', q: `Aquí se ___ ${item}. (${v.inf})`, c: [v.sg, v.pl], a: plural ? 1 : 0,
+        exp: `Passive se agrees with the noun: ${item} is ${plural ? 'plural' : 'singular'} → se ${plural ? v.pl : v.sg}.` };
+    }
+    if (r < 0.67) {
+      // cuyo agreement
+      const owner = pick(GEN_CUYO.owners);
+      const pos = pick(GEN_CUYO.possessions);
+      const c = ['cuyo', 'cuya', 'cuyos', 'cuyas'];
+      return { t: 'mc', q: `Es ${owner} ___ ${pos.w} conocemos bien.`, c, a: c.indexOf(pos.form),
+        exp: `cuyo agrees with the thing possessed (${pos.w}) → ${pos.form}.` };
+    }
+  }
+
+  // b2 fallthrough + c1: accidental se / dative of interest
+  const v = pick(GEN_ACCIDENTAL.verbs);
+  const plural = Math.random() < 0.5;
+  const item = plural ? pick(GEN_ACCIDENTAL.itemsPl) : pick(GEN_ACCIDENTAL.itemsSg);
+  const vf = plural ? v.pl : v.sg;
+  if (levelId === 'c1' && r < 0.5 && !v.inf.includes(' ')) {
+    // typed variant: supply the verb form
+    return { t: 'type', q: `Se me ___ ${item}. (${v.inf} — accidental se)`, a: [vf],
+      exp: `The verb agrees with ${item} (${plural ? 'plural' : 'singular'}): se me ${vf} ${item}.` };
+  }
+  const dat = pick(GEN_ACCIDENTAL.datives);
+  const { c, a } = mcFrom(['me', 'te', 'le', 'nos', 'os', 'les'], dat.pr, 4);
+  return { t: 'mc', q: `Se ___ ${vf} ${item}. (${dat.p})`, c, a,
+    exp: `The affected person (${dat.p}) appears as a dative: se ${dat.pr} ${vf} ${item}.` };
+}
+
+function genQuestion(levelId, topicId) {
+  if (topicId === 'tenses') return makeDrillQuestion(levelId);
+  if (topicId === 'pronouns') return genPronounQuestion(levelId);
+  return genGenderQuestion(levelId);
+}
+
+// n unique generated questions, also avoiding any prompt text in `avoid`
+function makeGenSet(levelId, topicId, n, avoid = []) {
   const out = [];
-  const seen = new Set();
+  const seen = new Set(avoid);
   let guard = 0;
-  while (out.length < n && guard++ < 200) {
-    const q = makeDrillQuestion(levelId);
-    const key = q.q;
-    if (seen.has(key)) continue;
-    seen.add(key);
+  while (out.length < n && guard++ < 300) {
+    const q = genQuestion(levelId, topicId);
+    if (seen.has(q.q)) continue;
+    seen.add(q.q);
     out.push(q);
   }
   return out;
@@ -167,6 +363,28 @@ function placementResult(answers) {
 
 /* ---------- session state ---------- */
 
+// Draw n bank questions, never repeating one until the whole pool has been
+// seen (tracked per level:topic in localStorage).
+function bankSample(levelId, topicId, n) {
+  const bank = EXERCISES[levelId][topicId];
+  if (!state.seen) state.seen = {};
+  const key = statKey(levelId, topicId);
+  const seenArr = state.seen[key] || [];
+  const seen = new Set(seenArr);
+  const fresh = bank.map((_, i) => i).filter((i) => !seen.has(i));
+  let idxs;
+  if (fresh.length >= n) {
+    idxs = sample(fresh, n);
+    state.seen[key] = seenArr.concat(idxs);
+  } else {
+    // pool exhausted: serve the last fresh ones, top up from old, restart cycle
+    idxs = fresh.concat(sample(seenArr, n - fresh.length));
+    state.seen[key] = idxs.slice();
+  }
+  save();
+  return idxs.map((i) => bank[i]);
+}
+
 let session = null; // { mode, level, topic, questions, index, correct, answers, revealed }
 
 function startSession(mode, levelId, topicId) {
@@ -176,7 +394,10 @@ function startSession(mode, levelId, topicId) {
   } else if (mode === 'drill') {
     questions = makeDrillSet(levelId, 10);
   } else {
-    questions = sample(EXERCISES[levelId][topicId], 8);
+    // 6 curated bank questions (cycled, no repeats) + 4 freshly generated
+    const fromBank = bankSample(levelId, topicId, 6);
+    const generated = makeGenSet(levelId, topicId, 4, fromBank.map((q) => q.q));
+    questions = shuffle(fromBank.concat(generated));
   }
   session = {
     mode, level: levelId, topic: topicId,

@@ -26,12 +26,17 @@ your level for you.
 ## Features
 
 - **Lessons** — concise reference notes with conjugation and gender tables per level
-- **Practice quizzes** — multiple choice and typed answers, with instant explanations
+- **Practice quizzes** — multiple choice and typed answers, with instant explanations.
+  Each 10-question quiz mixes 6 curated questions with 4 freshly generated ones, and
+  curated questions never repeat until you've seen the whole pool for that topic
+- **A deep library** — 330 hand-written questions (22 per topic per level) plus
+  pronoun and gender generators built on noun, name, adjective, and verb banks:
+  hundreds of unique generated combinations per topic
 - **Accent-aware checking** — a near-miss on accents gets its own gentle feedback
   (plus on-screen accent buttons: á é í ó ú ñ ü)
 - **Conjugation drill** — unlimited generated questions across every tense unlocked
-  at your level, mixing regular verbs with core irregulars (ser, estar, ir, tener,
-  hacer, poder)
+  at your level, mixing 22 regular verbs with 12 core irregulars (ser, estar, ir,
+  tener, hacer, poder, querer, venir, decir, saber, poner, salir)
 - **Adaptive difficulty** — the app tracks your rolling accuracy per topic and
   suggests moving up (≥85%) or reviewing a level down (≤50%)
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
@@ -55,6 +60,7 @@ main branch.
 ```
 index.html   app shell and views
 styles.css   theme (light + dark) and layout
-data.js      levels, lessons, 150 hand-written exercises, conjugation tables
-app.js       quiz engine, drill generator, placement test, adaptive logic
+data.js      levels, lessons, 330 hand-written exercises, conjugation tables,
+             generator data banks (nouns, adjectives, names, verb patterns)
+app.js       quiz engine, question generators, placement test, adaptive logic
 ```
