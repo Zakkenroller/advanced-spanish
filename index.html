@@ -13,8 +13,25 @@
       <span class="stat" title="Experience points">⭐ <span id="xp">0</span> XP</span>
       <span class="stat" title="Current answer streak">🔥 <span id="streak">0</span></span>
       <span class="stat level-badge" id="current-level">No level set</span>
+      <span id="account-area" class="account-area"></span>
     </div>
   </header>
+
+  <!-- AUTH (only shown when cloud sync is configured; see sync-config.js) -->
+  <div id="auth-modal" class="modal hidden">
+    <div class="card modal-card">
+      <h3>☁️ Sync your progress</h3>
+      <p class="hint">Enter your email and we’ll send a sign-in link — no password needed.
+        Your level, XP, stats, and review queue will follow you to any device.</p>
+      <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com"
+             aria-label="Email address">
+      <div class="modal-actions">
+        <button class="btn primary" id="auth-send">Send magic link</button>
+        <button class="btn ghost" id="auth-cancel">Cancel</button>
+      </div>
+      <p id="auth-status" class="hint" aria-live="polite"></p>
+    </div>
+  </div>
 
   <main>
     <!-- HOME -->
@@ -74,7 +91,10 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="sync-config.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <script src="sync.js"></script>
 </body>
 </html>

@@ -248,3 +248,27 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
 .view { display: none; }
 .view.active { display: block; }
 .foot { margin-top: 2.5rem; text-align: center; }
+
+/* ---------- account & sync ---------- */
+
+.account-area { display: inline-flex; gap: .4rem; align-items: center; }
+
+.modal {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .45);
+  padding: 1rem;
+}
+.modal-card {
+  max-width: 24rem; width: 100%;
+  padding: 1.2rem 1.3rem;
+}
+.modal-card h3 { margin-top: 0; }
+.modal-card input[type="email"] {
+  font: inherit; width: 100%;
+  margin: .6rem 0;
+  padding: .55rem .7rem;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+}
+.modal-actions { display: flex; gap: .5rem; margin-top: .2rem; }

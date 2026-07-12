@@ -45,7 +45,10 @@ your level for you.
 - **Adaptive difficulty** — the app tracks your rolling accuracy per topic and
   suggests moving up (≥85%) or reviewing a level down (≤50%)
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
-  browser (localStorage); nothing leaves your machine
+  browser (localStorage); nothing leaves your machine unless you enable sync
+- **Optional accounts & sync** — with a free Supabase project configured (see
+  below), users sign in with an emailed magic link and their progress — level,
+  XP, stats, review queue — follows them across devices
 
 ## Running it
 
@@ -60,12 +63,58 @@ python3 -m http.server 8000
 It also works out of the box on GitHub Pages: Settings → Pages → deploy from the
 main branch.
 
+## Accounts & sync (optional, ~10 minutes)
+
+Out of the box the app is fully local — no account UI appears and no data leaves
+the browser. To enable individual accounts with cross-device sync:
+
+1. **Create a project** at [supabase.com](https://supabase.com) (free tier is plenty —
+   each user's progress is a few KB).
+2. **Create the table.** In the SQL Editor, run:
+
+   ```sql
+   create table public.progress (
+     user_id uuid primary key references auth.users(id) on delete cascade,
+     state jsonb not null,
+     updated_at timestamptz not null default now()
+   );
+
+   alter table public.progress enable row level security;
+
+   create policy "Users can manage own progress"
+     on public.progress for all
+     using (auth.uid() = user_id)
+     with check (auth.uid() = user_id);
+   ```
+
+3. **Set the redirect URL.** In Authentication → URL Configuration, set the
+   Site URL to where the app is served (e.g. your GitHub Pages URL, or
+   `http://localhost:8000` while developing). Magic links redirect there.
+4. **Paste your keys.** In Project Settings → API, copy the project URL and the
+   `anon public` key into `sync-config.js`. The anon key is safe to commit — it's
+   public by design; row-level security (step 2) is what keeps each user's data
+   private to them.
+
+That's it. A "☁️ Sign in to sync" button appears in the header; users enter an
+email, click the emailed link, and their progress syncs automatically after
+every answer (debounced). Conflict handling is last-write-wins on the whole
+profile: on sign-in, whichever copy (local or cloud) was saved most recently
+wins. Signing in on a fresh device pulls the cloud copy; "Reset progress" also
+clears the cloud copy.
+
+**Caveat worth knowing:** if a *different* person signs in on a browser that
+already has local progress and their account has no cloud data yet, the local
+progress is adopted as theirs. Have new users sign in before practicing, or
+reset progress first.
+
 ## Project layout
 
 ```
 index.html   app shell and views
 styles.css   theme (light + dark) and layout
-data.js      levels, lessons, 330 hand-written exercises, conjugation tables,
-             generator data banks (nouns, adjectives, names, verb patterns)
-app.js       quiz engine, question generators, placement test, adaptive logic
+data.js         levels, lessons, 330 hand-written exercises, conjugation tables,
+                generator data banks (nouns, adjectives, names, verb patterns)
+app.js          quiz engine, question generators, placement test, adaptive logic
+sync-config.js  Supabase URL + anon key (empty = local-only mode)
+sync.js         optional accounts: magic-link auth, cloud sync of progress
 ```

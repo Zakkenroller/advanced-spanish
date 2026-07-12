@@ -17,7 +17,9 @@ function load() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; }
 }
 function save() {
+  state._updatedAt = Date.now(); // lets cloud sync pick a winner across devices
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
+  if (typeof syncQueuePush === 'function') syncQueuePush();
 }
 
 /* ---------- helpers ---------- */
@@ -813,8 +815,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#placement-btn').addEventListener('click', () => startSession('placement', null, null));
   document.querySelectorAll('.home-link').forEach((b) =>
     b.addEventListener('click', renderHome));
-  $('#reset-btn').addEventListener('click', () => {
+  $('#reset-btn').addEventListener('click', async () => {
     if (confirm('Reset all progress (XP, streak, level, stats)?')) {
+      // Clear the cloud copy too, or sign-in would just restore everything
+      if (typeof syncReset === 'function') await syncReset();
       localStorage.removeItem(STORE_KEY);
       location.reload();
     }
