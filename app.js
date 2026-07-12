@@ -72,6 +72,41 @@ function recordAnswer(level, topic, ok) {
   save();
 }
 
+/* ---------- smart review (Leitner boxes) ---------- */
+
+const REVIEW_INTERVALS_DAYS = [0, 1, 3, 7, 14]; // per box
+const REVIEW_CAP = 100;
+
+function queueReview(q, level, topic) {
+  if (!state.review) state.review = [];
+  if (state.review.some((r) => r.q.q === q.q)) return; // dedupe by prompt
+  state.review.push({ q, level, topic, box: 0, due: Date.now() });
+  if (state.review.length > REVIEW_CAP) state.review.shift();
+  save();
+}
+
+function dueReviewItems() {
+  if (!state.review) return [];
+  const now = Date.now();
+  return state.review.filter((r) => r.due <= now);
+}
+
+function updateReviewItem(item, ok) {
+  if (ok) {
+    item.box = Math.min(item.box + 1, REVIEW_INTERVALS_DAYS.length - 1);
+    if (item.box === REVIEW_INTERVALS_DAYS.length - 1) {
+      // graduated — retire it
+      state.review = state.review.filter((r) => r !== item);
+    } else {
+      item.due = Date.now() + REVIEW_INTERVALS_DAYS[item.box] * 86400000;
+    }
+  } else {
+    item.box = 0;
+    item.due = Date.now() + 10 * 60000; // retry in 10 minutes
+  }
+  save();
+}
+
 function recentAccuracy(level, topic) {
   const s = getStats(level, topic);
   if (s.recent.length === 0) return null;
@@ -175,12 +210,29 @@ function startSession(mode, levelId, topicId) {
     questions = makePlacementSet();
   } else if (mode === 'drill') {
     questions = makeDrillSet(levelId, 10);
+  } else if (mode === 'detective') {
+    questions = sample(DETECTIVE[levelId], 8);
+  } else if (mode === 'story') {
+    questions = sample(CLOZE_STORIES[levelId], 1)
+      .map((s) => ({ ...s, t: 'cloze' }));
+  } else if (mode === 'workout') {
+    // Interleaved: interpretation + curated exercises + generated drills
+    questions = shuffle(
+      sample(DETECTIVE[levelId], 3)
+        .concat(sample(EXERCISES[levelId].tenses, 3))
+        .concat(makeDrillSet(levelId, 4)));
+  } else if (mode === 'review') {
+    questions = dueReviewItems()
+      .sort((a, b) => a.due - b.due)
+      .slice(0, 10)
+      .map((r) => ({ ...r.q, _rev: r }));
   } else {
     questions = sample(EXERCISES[levelId][topicId], 8);
   }
   session = {
     mode, level: levelId, topic: topicId,
     questions, index: 0, correct: 0, answers: [], revealed: false,
+    unitsTotal: 0, unitsCorrect: 0,
   };
   renderPractice();
 }
@@ -248,25 +300,87 @@ function renderHome() {
           <button class="btn primary" data-practice="${t.id}">✏️ Practice</button>
         </div>
       </div>`;
-    }).join('') + `
-      <div class="card topic-card drill-card">
-        <div class="topic-head"><span class="topic-icon">🔥</span><h3>Conjugation Drill</h3></div>
-        <p class="topic-level-desc">Unlimited generated questions across every tense unlocked at
-          ${esc(lvl.cefr)}: ${LEVEL_TENSES[state.level].map((t) => TENSE_INFO[t].en).join(', ')}.</p>
-        <div class="card-actions">
-          <button class="btn primary" data-drill="1">⚡ Start drill</button>
-        </div>
-      </div>`;
+    }).join('');
 
     cards.querySelectorAll('[data-lesson]').forEach((b) =>
       b.addEventListener('click', () => renderLesson(state.level, b.dataset.lesson)));
     cards.querySelectorAll('[data-practice]').forEach((b) =>
       b.addEventListener('click', () => startSession('quiz', state.level, b.dataset.practice)));
-    const drillBtn = cards.querySelector('[data-drill]');
-    if (drillBtn) drillBtn.addEventListener('click', () => startSession('drill', state.level, null));
   }
 
+  renderLab();
   show('#view-home');
+}
+
+function renderLab() {
+  const lab = $('#lab-cards');
+  const labSection = $('#lab-section');
+  if (!state.level) {
+    labSection.classList.add('hidden');
+    return;
+  }
+  labSection.classList.remove('hidden');
+  const lvl = levelById(state.level);
+  const due = dueReviewItems().length;
+  const queued = (state.review || []).length;
+  const reviewTxt = due > 0
+    ? `<b>${due} item${due === 1 ? '' : 's'} due</b> — spaced repetition of the questions you've missed.`
+    : queued > 0
+      ? `Nothing due right now — ${queued} item${queued === 1 ? '' : 's'} scheduled for later.`
+      : 'Miss a question anywhere and it lands here, scheduled for spaced review.';
+
+  lab.innerHTML = `
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🧰</span><h3>Tense Toolkit</h3></div>
+      <p class="topic-level-desc">The timeline, photo-vs-video, trigger words, and every mnemonic:
+        SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO…</p>
+      <div class="card-actions"><button class="btn ghost" id="toolkit-btn">📖 Open toolkit</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🕵️</span><h3>Tense Detective</h3></div>
+      <p class="topic-level-desc">Don't conjugate — <i>interpret</i>. Decode who, when, and
+        whether it's done from the verb form alone.</p>
+      <div class="card-actions"><button class="btn primary" id="detective-btn">🔎 Investigate</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">📚</span><h3>Story Mode</h3></div>
+      <p class="topic-level-desc">Conjugate inside a real narrative — tenses live in stories,
+        not in isolated sentences.</p>
+      <div class="card-actions"><button class="btn primary" id="story-btn">📜 Read &amp; fill</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🔥</span><h3>Conjugation Drill</h3></div>
+      <p class="topic-level-desc">Unlimited generated questions across every tense unlocked at
+        ${esc(lvl.cefr)}: ${LEVEL_TENSES[state.level].map((t) => TENSE_INFO[t].en).join(', ')}.</p>
+      <div class="card-actions"><button class="btn primary" id="drill-btn">⚡ Start drill</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">💪</span><h3>Tense Workout</h3></div>
+      <p class="topic-level-desc">Interleaved set: detective questions, curated exercises, and
+        drills shuffled together — the mix research says beats blocked practice.</p>
+      <div class="card-actions"><button class="btn primary" id="workout-btn">🏋️ Mix it up</button></div>
+    </div>
+    <div class="card topic-card ${due > 0 ? 'review-due' : ''}">
+      <div class="topic-head"><span class="topic-icon">🔁</span><h3>Smart Review</h3></div>
+      <p class="topic-level-desc">${reviewTxt}</p>
+      <div class="card-actions">
+        <button class="btn ${due > 0 ? 'primary' : 'ghost'}" id="review-btn" ${due === 0 ? 'disabled' : ''}>
+          ${due > 0 ? '🎯 Review now' : '✓ All caught up'}</button>
+      </div>
+    </div>`;
+
+  $('#toolkit-btn').addEventListener('click', renderToolkit);
+  $('#detective-btn').addEventListener('click', () => startSession('detective', state.level, null));
+  $('#story-btn').addEventListener('click', () => startSession('story', state.level, null));
+  $('#drill-btn').addEventListener('click', () => startSession('drill', state.level, null));
+  $('#workout-btn').addEventListener('click', () => startSession('workout', state.level, null));
+  const rb = $('#review-btn');
+  if (!rb.disabled) rb.addEventListener('click', () => startSession('review', state.level, null));
+}
+
+function renderToolkit() {
+  $('#toolkit-body').innerHTML = TOOLKIT_HTML;
+  show('#view-toolkit');
 }
 
 function renderLesson(levelId, topicId) {
@@ -288,12 +402,22 @@ function renderPractice() {
   let title;
   if (s.mode === 'placement') title = '🧭 Placement quiz';
   else if (s.mode === 'drill') title = `🔥 Conjugation drill — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'detective') title = `🕵️ Tense Detective — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'story') title = `📚 Story Mode — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'workout') title = `💪 Tense Workout — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'review') title = '🔁 Smart Review';
   else title = `${topicById(s.topic).icon} ${topicById(s.topic).name} — ${levelById(s.level).cefr}`;
   $('#practice-title').textContent = title;
   $('#practice-progress').textContent = `${s.index + 1} / ${total}`;
   $('#practice-bar').style.width = `${(s.index / total) * 100}%`;
 
   const box = $('#question-box');
+  if (q.t === 'cloze') {
+    renderCloze(q, box);
+    $('#next-btn').classList.add('hidden');
+    show('#view-practice');
+    return;
+  }
   if (q.t === 'mc') {
     box.innerHTML = `
       <p class="question">${q.q}</p>
@@ -361,15 +485,27 @@ function answerType() {
   finishAnswer(ok, q, accentMiss);
 }
 
+function statsTopicFor(mode, topic) {
+  // All tense-lab modes feed the tenses topic stats
+  return ['drill', 'detective', 'story', 'workout'].includes(mode) ? 'tenses' : topic;
+}
+
 function finishAnswer(ok, q, accentMiss) {
   const s = session;
   s.revealed = true;
   s.answers.push({ level: q._level || s.level, ok });
   if (ok) s.correct++;
+  s.unitsTotal++;
+  if (ok) s.unitsCorrect++;
 
-  if (s.mode !== 'placement') {
-    // Drill results count toward the tenses topic
-    recordAnswer(s.level, s.mode === 'drill' ? 'tenses' : s.topic, ok);
+  if (s.mode === 'review') {
+    updateReviewItem(q._rev, ok);
+    recordAnswer(q._rev.level, q._rev.topic, ok);
+    renderHeader();
+  } else if (s.mode !== 'placement') {
+    const topic = statsTopicFor(s.mode, s.topic);
+    recordAnswer(s.level, topic, ok);
+    if (!ok) queueReview(q, s.level, topic);
     renderHeader();
   }
 
@@ -392,6 +528,101 @@ function finishAnswer(ok, q, accentMiss) {
   nextBtn.focus();
 }
 
+/* ---------- cloze (story mode) ---------- */
+
+function renderCloze(q, box) {
+  const html = esc(q.text).replace(/\{(\d+)\}/g, (_, n) => {
+    const b = q.blanks[parseInt(n, 10) - 1];
+    return `<span class="cloze-blank"><input type="text" data-b="${parseInt(n, 10) - 1}"
+      autocomplete="off" autocapitalize="off" spellcheck="false"
+      aria-label="Blank ${n}"><small class="cloze-hint">(${esc(b.hint)})</small></span>`;
+  });
+  box.innerHTML = `
+    <h3 class="cloze-title">${esc(q.title)}</h3>
+    <p class="cloze-note">${esc(q.note)}</p>
+    <p class="cloze-text">${html}</p>
+    <div class="accent-row">
+      ${ACCENT_CHARS.map((ch) => `<button class="accent-btn" data-ch="${ch}">${ch}</button>`).join('')}
+    </div>
+    <button class="btn primary" id="cloze-submit">Check the story</button>
+    <div id="feedback"></div>`;
+
+  let lastInput = box.querySelector('.cloze-blank input');
+  box.querySelectorAll('.cloze-blank input').forEach((inp) => {
+    inp.addEventListener('focus', () => { lastInput = inp; });
+  });
+  box.querySelectorAll('.accent-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (lastInput && !lastInput.disabled) {
+        lastInput.value += b.dataset.ch;
+        lastInput.focus();
+      }
+    });
+  });
+  $('#cloze-submit').addEventListener('click', () => answerCloze(q, box));
+}
+
+function answerCloze(q, box) {
+  const s = session;
+  if (s.revealed) return;
+  s.revealed = true;
+
+  const inputs = Array.from(box.querySelectorAll('.cloze-blank input'));
+  const misses = [];
+  let okCount = 0;
+  inputs.forEach((inp) => {
+    const i = parseInt(inp.dataset.b, 10);
+    const b = q.blanks[i];
+    const raw = inp.value.trim().toLowerCase();
+    const answers = b.a.map((a) => a.toLowerCase());
+    const ok = answers.includes(raw);
+    const accentMiss = !ok && answers.some((a) => stripAccents(a) === stripAccents(raw));
+    inp.disabled = true;
+    inp.classList.add(ok ? 'cloze-ok' : accentMiss ? 'cloze-almost' : 'cloze-bad');
+    if (ok) okCount++;
+    else misses.push({ n: i + 1, b });
+
+    s.unitsTotal++;
+    if (ok) s.unitsCorrect++;
+    if (s.mode !== 'placement') {
+      recordAnswer(s.level, 'tenses', ok);
+      if (!ok) {
+        queueReview({
+          t: 'type',
+          q: `${q.title}: «…${clozeContext(q.text, i + 1)}…» (${b.hint})`,
+          a: b.a, exp: b.exp,
+        }, s.level, 'tenses');
+      }
+    }
+  });
+  renderHeader();
+
+  $('#cloze-submit').disabled = true;
+  const fb = box.querySelector('#feedback');
+  let msg = okCount === inputs.length
+    ? `<div class="fb ok">✅ <b>¡Historia perfecta!</b> Every blank correct.</div>`
+    : `<div class="fb ${okCount >= inputs.length / 2 ? 'almost' : 'bad'}">
+        You got <b>${okCount}/${inputs.length}</b>.</div>`;
+  if (misses.length) {
+    msg += `<ul class="cloze-misses">${misses.map(({ n, b }) =>
+      `<li><b>${n}.</b> ${esc(b.a[0])} — ${esc(b.exp)}</li>`).join('')}</ul>`;
+  }
+  fb.innerHTML = msg;
+
+  const nextBtn = $('#next-btn');
+  nextBtn.textContent = s.index + 1 < s.questions.length ? 'Next →' : 'See results';
+  nextBtn.classList.remove('hidden');
+  nextBtn.focus();
+}
+
+function clozeContext(text, n) {
+  // A few words around blank {n}, for review-queue prompts
+  const idx = text.indexOf(`{${n}}`);
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(text.length, idx + 30);
+  return text.slice(start, end).replace(/\{(\d+)\}/g, '___').trim();
+}
+
 function nextQuestion() {
   const s = session;
   s.index++;
@@ -405,7 +636,9 @@ function nextQuestion() {
 
 function renderResults() {
   const s = session;
-  const pct = Math.round((s.correct / s.questions.length) * 100);
+  const total = s.unitsTotal || s.questions.length;
+  const good = s.unitsTotal ? s.unitsCorrect : s.correct;
+  const pct = Math.round((good / total) * 100);
   let headline, sub = '', actions = '';
 
   if (s.mode === 'placement') {
@@ -418,12 +651,22 @@ function renderResults() {
     sub = `That's roughly <b>${esc(lvl.duo)}</b>. You got ${s.correct}/${s.questions.length}
       across all five levels. Lessons and practice are now tuned to ${lvl.cefr} —
       you can change it any time from the home screen.`;
+  } else if (s.mode === 'review') {
+    headline = pct >= 80 ? `¡Excelente! ${pct}%` : `Reviewed — ${pct}%`;
+    const remaining = dueReviewItems().length;
+    sub = `You got ${good} of ${total}. Correct answers move up a box (next review in
+      1 → 3 → 7 → 14 days, then they graduate); misses come back in 10 minutes.`;
+    if (remaining > 0) {
+      sub += ` <b>${remaining} more item${remaining === 1 ? '' : 's'} still due.</b>`;
+    } else {
+      sub += ' Queue cleared — nice work.';
+    }
   } else {
     headline = pct >= 80 ? `¡Excelente! ${pct}%` : pct >= 50 ? `¡Bien hecho! ${pct}%` : `Keep going — ${pct}%`;
-    sub = `You got ${s.correct} of ${s.questions.length}.`;
+    sub = `You got ${good} of ${total}.`;
 
     // Adaptive suggestion based on recent rolling accuracy
-    const topic = s.mode === 'drill' ? 'tenses' : s.topic;
+    const topic = statsTopicFor(s.mode, s.topic);
     const acc = recentAccuracy(s.level, topic);
     const idx = LEVELS.findIndex((l) => l.id === s.level);
     if (acc !== null && getStats(s.level, topic).recent.length >= 8) {
@@ -461,8 +704,13 @@ function renderResults() {
   if (s.mode === 'placement') {
     againBtn.textContent = '🏠 Start learning';
     againBtn.onclick = () => renderHome();
+  } else if (s.mode === 'review') {
+    const remaining = dueReviewItems().length;
+    againBtn.textContent = remaining > 0 ? `🎯 Review ${remaining} more` : '🏠 Home';
+    againBtn.onclick = () => remaining > 0
+      ? startSession('review', state.level, null) : renderHome();
   } else {
-    againBtn.textContent = '🔁 Practice again';
+    againBtn.textContent = s.mode === 'story' ? '📖 Retry the story' : '🔁 Practice again';
     againBtn.onclick = () => startSession(s.mode, state.level, s.topic);
   }
 

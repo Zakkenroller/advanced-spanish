@@ -29,13 +29,33 @@ your level for you.
 - **Practice quizzes** — multiple choice and typed answers, with instant explanations
 - **Accent-aware checking** — a near-miss on accents gets its own gentle feedback
   (plus on-screen accent buttons: á é í ó ú ñ ü)
-- **Conjugation drill** — unlimited generated questions across every tense unlocked
-  at your level, mixing regular verbs with core irregulars (ser, estar, ir, tener,
-  hacer, poder)
 - **Adaptive difficulty** — the app tracks your rolling accuracy per topic and
   suggests moving up (≥85%) or reviewing a level down (≤50%)
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
   browser (localStorage); nothing leaves your machine
+
+## The Tense Lab
+
+The verb-tense side is built around findings from second-language-acquisition
+research (form-focused salience, VanPatten's processing instruction, and
+spaced/interleaved retrieval practice):
+
+- **Tense Toolkit** — a visual timeline of every tense, the photo-vs-video metaphor
+  for preterite/imperfect, trigger-word tables, and the classic mnemonics
+  (SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO, the Three Amigos, the 12 irregular
+  futures, Car-Gar-Zar)
+- **Tense Detective** — interpretation exercises: decode who, when, and whether
+  it's finished from the verb form alone, the way processing-instruction research
+  recommends
+- **Story Mode** — cloze narratives per level, so tense choice is practiced in
+  connected discourse (the imperfect paints the set, the preterite moves the plot)
+- **Conjugation Drill** — unlimited generated questions across every tense unlocked
+  at your level, mixing regular verbs with core irregulars (ser, estar, ir, tener,
+  hacer, poder)
+- **Tense Workout** — an interleaved set (detective + curated exercises + drills
+  shuffled together), since mixed practice beats blocked practice for retention
+- **Smart Review** — every question you miss enters a Leitner queue and resurfaces
+  on a spaced schedule (10 min → 1 → 3 → 7 → 14 days, then it graduates)
 
 ## Running it
 
