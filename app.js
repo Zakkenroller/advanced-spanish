@@ -816,7 +816,9 @@ function renderLab() {
     <div class="card topic-card">
       <div class="topic-head"><span class="topic-icon">📚</span><h3>Story Mode</h3></div>
       <p class="topic-level-desc">Conjugate inside a real narrative — tenses live in stories,
-        not in isolated sentences.</p>
+        not in isolated sentences. <b>${CLOZE_STORIES[state.level].length} stories</b> at this
+        level, and every miss gets a full explanation, an instant fix-it retype, and a spot
+        in your review queue.</p>
       <div class="card-actions"><button class="btn primary" id="story-btn">📜 Read &amp; fill</button></div>
     </div>
     <div class="card topic-card">
@@ -943,6 +945,18 @@ function answerType() {
 function finishAnswer(ok, q, accentMiss) {
   const s = session;
   s.revealed = true;
+
+  if (q._fix) {
+    // Fix-it retypes: the original miss already hit the stats and the review
+    // queue, so these only track the corrective round — and a wrong retype
+    // goes back in the queue until it's typed correctly.
+    s.fixTotal = (s.fixTotal || 0) + 1;
+    if (ok) s.fixCorrect = (s.fixCorrect || 0) + 1;
+    else s.questions.push({ ...q });
+    renderFeedback(ok, q, accentMiss);
+    return;
+  }
+
   s.answers.push({ level: q._level || s.level, ok });
   if (ok) s.correct++;
   s.unitsTotal++;
@@ -964,6 +978,11 @@ function finishAnswer(ok, q, accentMiss) {
     renderHeader();
   }
 
+  renderFeedback(ok, q, accentMiss);
+}
+
+function renderFeedback(ok, q, accentMiss) {
+  const s = session;
   const fb = $('#feedback');
   const answerTxt = q.t === 'mc' ? q.c[q.a] : q.a[0];
   let msg;
@@ -974,6 +993,10 @@ function finishAnswer(ok, q, accentMiss) {
       The answer is <b>${esc(answerTxt)}</b>. ${esc(q.exp || '')}</div>`;
   } else {
     msg = `<div class="fb bad">❌ The answer is <b>${esc(answerTxt)}</b>. ${esc(q.exp || '')}</div>`;
+  }
+  if (q._fix && !ok) {
+    msg += `<p class="cloze-fixnote">🔁 No worries — this one comes back around
+      before the results.</p>`;
   }
   fb.innerHTML = msg;
   flagWidget(fb, {
@@ -1040,7 +1063,7 @@ function answerCloze(q, box) {
     inp.disabled = true;
     inp.classList.add(ok ? 'cloze-ok' : accentMiss ? 'cloze-almost' : 'cloze-bad');
     if (ok) okCount++;
-    else misses.push({ n: i + 1, b });
+    else misses.push({ n: i + 1, b, got: inp.value.trim(), accentMiss });
 
     s.unitsTotal++;
     if (ok) s.unitsCorrect++;
@@ -1063,8 +1086,30 @@ function answerCloze(q, box) {
     : `<div class="fb ${okCount >= inputs.length / 2 ? 'almost' : 'bad'}">
         You got <b>${okCount}/${inputs.length}</b>.</div>`;
   if (misses.length) {
-    msg += `<ul class="cloze-misses">${misses.map(({ n, b }) =>
-      `<li><b>${n}.</b> ${esc(b.a[0])} — ${esc(b.exp)}</li>`).join('')}</ul>`;
+    msg += `<div class="cloze-review">
+      <h4 class="cloze-review-head">Review your misses</h4>
+      <ol class="cloze-review-list">${misses.map(({ n, b, got, accentMiss }) => `
+        <li value="${n}">
+          <p class="cr-context">«…${esc(clozeContext(q.text, n))}…» <span class="cr-hint">(${esc(b.hint)})</span></p>
+          <p class="cr-line">${accentMiss ? '🟡' : '❌'} You wrote
+            <b class="cr-got">${got ? esc(got) : '(nothing)'}</b> →
+            <b class="cr-ans">${esc(b.a[0])}</b>${accentMiss ? ' — only the accent was off' : ''}</p>
+          <p class="cr-exp">${esc(b.exp)}</p>
+        </li>`).join('')}
+      </ol>
+      <p class="cloze-fixnote">🔧 Up next: retype each one correctly. They're also in
+        your <b>review queue</b> for the coming days.</p>
+    </div>`;
+
+    // Immediate fix-it round: each miss becomes a typed question, repeated
+    // at the end of the session until it's answered correctly.
+    const fixQs = misses.map(({ n, b }) => ({
+      t: 'type', _fix: true,
+      q: `🔧 Fix-it — ${esc(q.title)}: «…${esc(clozeContext(q.text, n))}…»
+        <span class="drill-hint">(${esc(b.hint)})</span>`,
+      a: b.a, exp: b.exp,
+    }));
+    s.questions.splice(s.index + 1, 0, ...fixQs);
   }
   fb.innerHTML = msg;
   flagWidget(fb, {
@@ -1074,7 +1119,8 @@ function answerCloze(q, box) {
   });
 
   const nextBtn = $('#next-btn');
-  nextBtn.textContent = s.index + 1 < s.questions.length ? 'Next →' : 'See results';
+  nextBtn.textContent = misses.length ? '🔧 Fix your mistakes →'
+    : s.index + 1 < s.questions.length ? 'Next →' : 'See results';
   nextBtn.classList.remove('hidden');
   nextBtn.focus();
 }
@@ -1129,6 +1175,10 @@ function renderResults() {
     } else if (missed > 0) {
       sub += ` The ${missed} you missed ${missed === 1 ? 'is' : 'are'} in your
         <b>review queue</b> — hitting them again is how they stick.`;
+    }
+    if (s.fixTotal) {
+      sub += ` 🔧 Fix-it round: <b>${s.fixCorrect}/${missed}</b> ${missed === 1 ? 'miss' : 'misses'}
+        retyped correctly${s.fixTotal > s.fixCorrect ? ` in ${s.fixTotal} tries` : ' on the first try'}.`;
     }
 
     // Adaptive suggestion based on recent rolling accuracy
