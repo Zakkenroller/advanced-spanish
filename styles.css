@@ -340,3 +340,7 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
 
 /* make verb endings pop in lesson & toolkit tables (form-focused salience) */
 .lesson-body td b, .tk-section td b { color: var(--brand); }
+
+/* sentence-frame drill hint line */
+.drill-hint { color: var(--muted); font-weight: 400; display: inline-block; margin-top: .3rem; }
+.drill-hint b { color: var(--brand); }

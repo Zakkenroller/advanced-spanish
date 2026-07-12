@@ -151,22 +151,74 @@ function conjugate(verb, tense, person) {
   return conjugateRegular(verb.inf, tense, person);
 }
 
+/* Weak-forms tracking: verb×tense combos you miss get drilled more often.
+   Weights rise on a miss (max 5) and fall on a hit; at 0 the combo returns
+   to the normal random rotation. */
+
+function drillWeights() {
+  if (!state.drillWeak) state.drillWeak = {};
+  return state.drillWeak;
+}
+
+function updateDrillWeak(key, ok) {
+  const w = drillWeights();
+  if (ok) {
+    if (w[key]) {
+      w[key]--;
+      if (w[key] <= 0) delete w[key];
+    }
+  } else {
+    w[key] = Math.min(5, (w[key] || 0) + 1);
+  }
+  save();
+}
+
+function weightedPick(keys, weights) {
+  const total = keys.reduce((sum, k) => sum + weights[k], 0);
+  let r = Math.random() * total;
+  for (const k of keys) {
+    r -= weights[k];
+    if (r <= 0) return k;
+  }
+  return keys[keys.length - 1];
+}
+
 function makeDrillQuestion(levelId) {
   const tenses = LEVEL_TENSES[levelId];
-  const tense = tenses[Math.floor(Math.random() * tenses.length)];
   // A1 sticks to regular verbs + ser/estar; higher levels mix in irregulars
   const pool = levelId === 'a1'
     ? REGULAR_VERBS.concat(IRREGULAR_VERBS.slice(0, 2))
     : REGULAR_VERBS.concat(IRREGULAR_VERBS);
-  const verb = pool[Math.floor(Math.random() * pool.length)];
+
+  // ~40% of questions revisit a weak verb×tense combo, weighted by miss count
+  let verb, tense;
+  const w = drillWeights();
+  const weakKeys = Object.keys(w).filter((k) => {
+    const [inf, t] = k.split('|');
+    return tenses.includes(t) && pool.some((v) => v.inf === inf);
+  });
+  if (weakKeys.length > 0 && Math.random() < 0.4) {
+    const [inf, t] = weightedPick(weakKeys, w).split('|');
+    verb = pool.find((v) => v.inf === inf);
+    tense = t;
+  } else {
+    tense = tenses[Math.floor(Math.random() * tenses.length)];
+    verb = pool[Math.floor(Math.random() * pool.length)];
+  }
+
   const person = Math.floor(Math.random() * 6);
   const answer = conjugate(verb, tense, person);
   const info = TENSE_INFO[tense];
+  const frame = pick(DRILL_FRAMES[tense]);
+  const comp = pick(VERB_COMPS[verb.inf]);
+  const subject = pick(PERSON_DISPLAY[person]);
   return {
     t: 'type',
-    q: `${PERSONS[person].label} ___ — <b>${verb.inf}</b> (${verb.en}), ${info.name} (${info.en})`,
+    q: `${frame.pre} ${subject} ___ ${comp}${frame.post}<br>
+      <small class="drill-hint"><b>${verb.inf}</b> (${verb.en}) — ${info.name} (${info.en})</small>`,
     a: [answer],
-    exp: `${PERSONS[person].label} + ${verb.inf} in the ${info.en}: ${answer}.`,
+    exp: `${frame.pre} ${subject} ${answer} ${comp}${frame.post} — ${verb.inf} in the ${info.en}.`,
+    _drill: `${verb.inf}|${tense}`,
   };
 }
 
@@ -414,10 +466,8 @@ function placementResult(answers) {
 
 // Draw n bank questions, never repeating one until the whole pool has been
 // seen (tracked per level:topic in localStorage).
-function bankSample(levelId, topicId, n) {
-  const bank = EXERCISES[levelId][topicId];
+function cycleSample(bank, key, n) {
   if (!state.seen) state.seen = {};
-  const key = statKey(levelId, topicId);
   const seenArr = state.seen[key] || [];
   const seen = new Set(seenArr);
   const fresh = bank.map((_, i) => i).filter((i) => !seen.has(i));
@@ -432,6 +482,10 @@ function bankSample(levelId, topicId, n) {
   }
   save();
   return idxs.map((i) => bank[i]);
+}
+
+function bankSample(levelId, topicId, n) {
+  return cycleSample(EXERCISES[levelId][topicId], statKey(levelId, topicId), n);
 }
 
 let session = null; // { mode, level, topic, questions, index, correct, answers, revealed }
@@ -457,14 +511,14 @@ function startSession(mode, levelId, topicId) {
       .map((r) => ({ ...r.q, _level: r.level, _topic: r.topic }));
     if (questions.length === 0) { renderHome(); return; }
   } else if (mode === 'detective') {
-    questions = sample(DETECTIVE[levelId], 8);
+    questions = cycleSample(DETECTIVE[levelId], `${levelId}:detective`, 8);
   } else if (mode === 'story') {
-    questions = sample(CLOZE_STORIES[levelId], 1)
+    questions = cycleSample(CLOZE_STORIES[levelId], `${levelId}:story`, 1)
       .map((st) => ({ ...st, t: 'cloze' }));
   } else if (mode === 'workout') {
     // Tense-focused interleave: interpretation + curated bank + generated drills
     questions = shuffle(
-      sample(DETECTIVE[levelId], 3)
+      cycleSample(DETECTIVE[levelId], `${levelId}:detective`, 3)
         .concat(bankSample(levelId, 'tenses', 3))
         .concat(makeDrillSet(levelId, 4)));
   } else {
@@ -547,8 +601,9 @@ function renderHome() {
     }).join('') + `
       <div class="card topic-card drill-card">
         <div class="topic-head"><span class="topic-icon">🔥</span><h3>Conjugation Drill</h3></div>
-        <p class="topic-level-desc">Unlimited generated questions across every tense unlocked at
-          ${esc(lvl.cefr)}: ${LEVEL_TENSES[state.level].map((t) => TENSE_INFO[t].en).join(', ')}.</p>
+        <p class="topic-level-desc">Unlimited sentence-based questions across every tense unlocked
+          at ${esc(lvl.cefr)}: ${LEVEL_TENSES[state.level].map((t) => TENSE_INFO[t].en).join(', ')}.
+          Adapts to hit the verb–tense combos you miss.</p>
         <div class="card-actions">
           <button class="btn primary" data-drill="1">⚡ Start drill</button>
         </div>
@@ -755,6 +810,7 @@ function finishAnswer(ok, q, accentMiss) {
     // carry their own topic (and, in review, their own level)
     const labMode = ['drill', 'detective', 'workout'].includes(s.mode);
     const topic = q._topic || (labMode ? 'tenses' : s.topic);
+    if (q._drill) updateDrillWeak(q._drill, ok);
     const level = q._level || s.level;
     recordAnswer(level, topic, ok);
     if (s.mode === 'review') {

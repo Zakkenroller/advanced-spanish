@@ -34,9 +34,13 @@ your level for you.
   hundreds of unique generated combinations per topic
 - **Accent-aware checking** — a near-miss on accents gets its own gentle feedback
   (plus on-screen accent buttons: á é í ó ú ñ ü)
-- **Conjugation drill** — unlimited generated questions across every tense unlocked
-  at your level, mixing 22 regular verbs with 12 core irregulars (ser, estar, ir,
-  tener, hacer, poder, querer, venir, decir, saber, poner, salir)
+- **Conjugation drill** — unlimited sentence-based questions across every tense
+  unlocked at your level, mixing 22 regular verbs with 12 core irregulars (ser,
+  estar, ir, tener, hacer, poder, querer, venir, decir, saber, poner, salir).
+  Every question lives inside a real sentence whose trigger word (ayer, mañana,
+  de niño, ojalá que…) quietly reinforces the tense association — and the drill
+  **adapts to your weak spots**, revisiting the verb–tense combos you miss until
+  you've re-mastered them
 - **Review queue (spaced repetition)** — every question you miss is scheduled for
   review: due immediately, then 1 day and 3 days after each correct pass until it
   graduates. Missing it again resets the clock
@@ -57,11 +61,15 @@ processing instruction, and interleaved retrieval practice):
   for preterite/imperfect, trigger-word tables, and the classic mnemonics:
   SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO, the Three Amigos, the 12 irregular
   futures in three families, and Car-Gar-Zar
-- **Tense Detective** — interpretation exercises (8 per level): decode who, when,
-  and whether it's finished from the verb form alone, the way
-  processing-instruction research recommends
-- **Story Mode** — cloze narratives per level, so tense choice is practiced in
-  connected discourse: the imperfect paints the set, the preterite moves the plot
+- **Tense Detective** — interpretation exercises (20 per level, 100 total): decode
+  who, when, and whether it's finished from the verb form alone, the way
+  processing-instruction research recommends. Sessions cycle through the pool
+  without repeats
+- **Story Mode** — four cloze narratives per level (20 stories, 160 blanks), from
+  a market morning at A1 to a formal witness statement at C1, including
+  workplace scenes (a county office, a clinic front desk, a Napa grape harvest):
+  the imperfect paints the set, the preterite moves the plot. Stories cycle so
+  you always get the one you've seen least recently
 - **Tense Workout** — a tense-focused interleaved set: detective questions,
   curated exercises, and generated drills shuffled together
 
