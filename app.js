@@ -78,6 +78,55 @@ function recentAccuracy(level, topic) {
   return s.recent.reduce((a, b) => a + b, 0) / s.recent.length;
 }
 
+/* ---------- review queue (spaced repetition of missed questions) ----------
+   Leitner-lite: a miss lands in box 0 (due immediately). Answering it
+   correctly in review promotes it: box 1 → due in 1 day, box 2 → due in
+   3 days, box 3 → mastered (removed). A miss in review resets to box 0. */
+
+const REVIEW_MAX = 100;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function reviewQueue() {
+  if (!state.review) state.review = [];
+  return state.review;
+}
+
+function reviewDue() {
+  return reviewQueue().filter((r) => r.due <= Date.now());
+}
+
+function addToReview(levelId, topicId, q) {
+  const queue = reviewQueue();
+  const existing = queue.find((r) => r.q.q === q.q);
+  if (existing) {
+    existing.box = 0;
+    existing.due = Date.now();
+  } else {
+    const { _topic, _level, ...clean } = q;
+    queue.push({ level: levelId, topic: topicId, box: 0, due: Date.now(), q: clean });
+    if (queue.length > REVIEW_MAX) queue.shift();
+  }
+  save();
+}
+
+function updateReviewEntry(q, ok) {
+  const queue = reviewQueue();
+  const entry = queue.find((r) => r.q.q === q.q);
+  if (!entry) return;
+  if (ok) {
+    entry.box++;
+    if (entry.box >= 3) {
+      state.review = queue.filter((r) => r !== entry); // mastered
+    } else {
+      entry.due = Date.now() + (entry.box === 1 ? 1 : 3) * DAY_MS;
+    }
+  } else {
+    entry.box = 0;
+    entry.due = Date.now();
+  }
+  save();
+}
+
 /* ---------- conjugation drill generator ---------- */
 
 function conjugateRegular(inf, tense, person) {
@@ -122,14 +171,210 @@ function makeDrillQuestion(levelId) {
 }
 
 function makeDrillSet(levelId, n) {
+  return makeGenSet(levelId, 'tenses', n);
+}
+
+/* ---------- pronoun & gender question generators ---------- */
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Build an MC question: answer + 3 distractors from pool, shuffled
+function mcFrom(pool, answer, total = 4) {
+  const others = sample(pool.filter((x) => x !== answer), total - 1);
+  const c = shuffle([answer, ...others]);
+  return { c, a: c.indexOf(answer) };
+}
+
+function pluralizeNoun(w) {
+  if (w.endsWith('z')) return w.slice(0, -1) + 'ces';
+  if (w.endsWith('ón')) return w.slice(0, -2) + 'ones';
+  if (/[aeiouáéíóú]$/.test(w)) return w + 's';
+  return w + 'es';
+}
+
+function genGenderQuestion(levelId) {
+  if (levelId === 'c1') {
+    const pair = pick(GEN_PAIRS);
+    const useM = Math.random() < 0.5;
+    const meaning = useM ? pair.m : pair.f;
+    const exp = `el ${pair.w} = ${pair.m}; la ${pair.w} = ${pair.f}.`;
+    if (Math.random() < 0.5) {
+      return { t: 'mc', q: `___ ${pair.w} (${meaning})`, c: ['el', 'la'], a: useM ? 0 : 1, exp };
+    }
+    return { t: 'mc', q: `___ ${pair.w} (${meaning} — “a/an”)`, c: ['un', 'una'], a: useM ? 0 : 1, exp };
+  }
+
+  const noun = pick(GEN_NOUNS[levelId]);
+  const fem = noun.g === 'f';
+  const why = noun.why ? ` — ${noun.why}` : '';
+  const kind = pick(['article', 'un', 'plural', 'adj']);
+
+  if (kind === 'article') {
+    const answer = noun.ela ? 'el' : (fem ? 'la' : 'el');
+    const exp = noun.ela
+      ? `${noun.w} (${noun.en}) starts with a stressed a-/ha- → el ${noun.w}, but it stays feminine.`
+      : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why}: ${answer} ${noun.w}.`;
+    return { t: 'mc', q: `___ ${noun.w}`, c: ['el', 'la', 'los', 'las'], a: answer === 'el' ? 0 : 1, exp };
+  }
+  if (kind === 'un') {
+    const answer = noun.ela ? 'un' : (fem ? 'una' : 'un');
+    const exp = noun.ela
+      ? `${noun.w} (${noun.en}): un also replaces una before stressed a-/ha- — un ${noun.w} (still feminine).`
+      : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why}: ${answer} ${noun.w}.`;
+    return { t: 'mc', q: `___ ${noun.w} (a/an)`, c: ['un', 'una', 'unos', 'unas'], a: answer === 'un' ? 0 : 1, exp };
+  }
+  if (kind === 'plural') {
+    const pl = pluralizeNoun(noun.w);
+    const exp = noun.ela
+      ? `The el is singular-only; the plural is regular feminine: las ${pl}.`
+      : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why}: ${fem ? 'las' : 'los'} ${pl}.`;
+    return { t: 'mc', q: `___ ${pl} (the — plural)`, c: ['los', 'las', 'el', 'la'], a: fem ? 1 : 0, exp };
+  }
+  // adjective agreement, singular
+  const adj = pick(GEN_ADJECTIVES);
+  const art = noun.ela ? 'el' : (fem ? 'la' : 'el');
+  const answer = adj.base + (fem ? 'a' : 'o');
+  const c = [adj.base + 'o', adj.base + 'a', adj.base + 'os', adj.base + 'as'];
+  const exp = noun.ela
+    ? `${noun.w} is feminine even though it takes el → ${answer}.`
+    : `${noun.w} (${noun.en}) is ${fem ? 'feminine' : 'masculine'}${why} → ${answer}.`;
+  return { t: 'mc', q: `${art} ${noun.w} ___ (${adj.en})`, c, a: fem ? 1 : 0, exp };
+}
+
+function genPronounQuestion(levelId) {
+  const r = Math.random();
+
+  if (levelId === 'a1') {
+    if (r < 0.4) {
+      const g = pick(['m', 'f']);
+      const name = pick(GEN_NAMES[g]);
+      const answer = g === 'm' ? 'él' : 'ella';
+      const { c, a } = mcFrom(['él', 'ella', 'ellos', 'ellas'], answer, 4);
+      return { t: 'mc', q: `${name} = ___`, c, a,
+        exp: `${name} is one ${g === 'm' ? 'man' : 'woman'} (spoken about) → ${answer}.` };
+    }
+    if (r < 0.8) {
+      const g1 = pick(['m', 'f']); const g2 = pick(['m', 'f']);
+      const n1 = pick(GEN_NAMES[g1]);
+      let n2 = pick(GEN_NAMES[g2]);
+      while (n2 === n1) n2 = pick(GEN_NAMES[g2]);
+      const allF = g1 === 'f' && g2 === 'f';
+      const answer = allF ? 'ellas' : 'ellos';
+      const { c, a } = mcFrom(['él', 'ella', 'ellos', 'ellas'], answer, 4);
+      return { t: 'mc', q: `${n1} y ${n2} = ___`, c, a,
+        exp: allF ? 'An all-female group (spoken about) → ellas.'
+                  : 'A group with at least one man (spoken about) → ellos.' };
+    }
+    const name = pick(GEN_NAMES.m);
+    const { c, a } = mcFrom(['nosotros', 'vosotros', 'ellos', 'ustedes'], 'nosotros', 4);
+    return { t: 'mc', q: `${name} y yo = ___`, c, a,
+      exp: 'Any group that includes “yo” → nosotros.' };
+  }
+
+  if (levelId === 'a2') {
+    if (r < 0.5) {
+      // direct-object replacement
+      const noun = pick(GEN_NOUNS.a1.concat(GEN_NOUNS.a2));
+      const fem = noun.g === 'f';
+      const plural = Math.random() < 0.4;
+      const w = plural ? pluralizeNoun(noun.w) : noun.w;
+      const art = plural ? (fem ? 'las' : 'los') : (fem ? 'la' : 'el');
+      const v = pick(GEN_TRANSITIVES);
+      const answer = plural ? (fem ? 'Las' : 'Los') : (fem ? 'La' : 'Lo');
+      const c = ['Lo', 'La', 'Los', 'Las'];
+      return { t: 'mc', q: `“${v} ${art} ${w}.” → “___ ${v.toLowerCase()}.”`, c, a: c.indexOf(answer),
+        exp: `${art} ${w} = ${fem ? 'feminine' : 'masculine'} ${plural ? 'plural' : 'singular'} → ${answer.toLowerCase()}.` };
+    }
+    // reflexive pronoun by person
+    const person = Math.floor(Math.random() * 6);
+    const verb = pick(GEN_REFLEXIVES);
+    const form = conjugateRegular(verb.inf, 'present', person);
+    const answer = REFLEXIVE_PRONOUNS[person];
+    const { c, a } = mcFrom(['me', 'te', 'se', 'nos', 'os'], answer, 4);
+    return { t: 'mc', q: `${PERSONS[person].label} ___ ${form}. (${verb.inf}se — ${verb.en})`, c, a,
+      exp: `Reflexive with ${PERSONS[person].label} → ${answer}: ${answer} ${form}.` };
+  }
+
+  if (levelId === 'b1') {
+    if (r < 0.5) {
+      // gustar-type verbs
+      const per = pick(GEN_GUSTAR.persons);
+      const v = pick(GEN_GUSTAR.verbs);
+      const plural = Math.random() < 0.5;
+      const item = plural ? pick(GEN_GUSTAR.itemsPl) : pick(GEN_GUSTAR.itemsSg);
+      const vf = plural ? v.pl : v.sg;
+      const { c, a } = mcFrom(['me', 'te', 'le', 'nos', 'os', 'les'], per.pr, 4);
+      return { t: 'mc', q: `${per.p} ___ ${vf} ${item}.`, c, a,
+        exp: `${v.inf} works like gustar — indirect object pronoun: ${per.p.toLowerCase()} ${per.pr} ${vf}.` };
+    }
+    // double object: le/les + lo/la/los/las → se lo/la/los/las
+    // (inanimate nouns only — “Mando el perro a María” reads strangely)
+    const noun = pick(GEN_NOUNS.a1.filter((n) => n.w !== 'gato' && n.w !== 'perro'));
+    const fem = noun.g === 'f';
+    const plural = Math.random() < 0.4;
+    const w = plural ? pluralizeNoun(noun.w) : noun.w;
+    const art = plural ? (fem ? 'las' : 'los') : (fem ? 'la' : 'el');
+    const give = pick(GEN_GIVE_VERBS);
+    const rec = pick(GEN_RECIPIENTS);
+    const doP = plural ? (fem ? 'las' : 'los') : (fem ? 'la' : 'lo');
+    const cap = give.charAt(0).toUpperCase() + give.slice(1);
+    const c = ['Se lo', 'Se la', 'Se los', 'Se las'];
+    return { t: 'mc', q: `“${cap} ${art} ${w} a ${rec}.” → “___ ${give}.”`, c, a: c.indexOf(`Se ${doP}`),
+      exp: `le/les + ${doP} is forbidden → se ${doP}: Se ${doP} ${give}.` };
+  }
+
+  if (levelId === 'b2') {
+    if (r < 0.34) {
+      // passive se: verb agrees with the noun
+      const v = pick(GEN_SE_PASSIVE.verbs);
+      const plural = Math.random() < 0.5;
+      const item = plural ? pick(GEN_SE_PASSIVE.itemsPl) : pick(GEN_SE_PASSIVE.itemsSg);
+      return { t: 'mc', q: `Aquí se ___ ${item}. (${v.inf})`, c: [v.sg, v.pl], a: plural ? 1 : 0,
+        exp: `Passive se agrees with the noun: ${item} is ${plural ? 'plural' : 'singular'} → se ${plural ? v.pl : v.sg}.` };
+    }
+    if (r < 0.67) {
+      // cuyo agreement
+      const owner = pick(GEN_CUYO.owners);
+      const pos = pick(GEN_CUYO.possessions);
+      const c = ['cuyo', 'cuya', 'cuyos', 'cuyas'];
+      return { t: 'mc', q: `Es ${owner} ___ ${pos.w} conocemos bien.`, c, a: c.indexOf(pos.form),
+        exp: `cuyo agrees with the thing possessed (${pos.w}) → ${pos.form}.` };
+    }
+  }
+
+  // b2 fallthrough + c1: accidental se / dative of interest
+  const v = pick(GEN_ACCIDENTAL.verbs);
+  const plural = Math.random() < 0.5;
+  const item = plural ? pick(GEN_ACCIDENTAL.itemsPl) : pick(GEN_ACCIDENTAL.itemsSg);
+  const vf = plural ? v.pl : v.sg;
+  if (levelId === 'c1' && r < 0.5 && !v.inf.includes(' ')) {
+    // typed variant: supply the verb form
+    return { t: 'type', q: `Se me ___ ${item}. (${v.inf} — accidental se)`, a: [vf],
+      exp: `The verb agrees with ${item} (${plural ? 'plural' : 'singular'}): se me ${vf} ${item}.` };
+  }
+  const dat = pick(GEN_ACCIDENTAL.datives);
+  const { c, a } = mcFrom(['me', 'te', 'le', 'nos', 'os', 'les'], dat.pr, 4);
+  return { t: 'mc', q: `Se ___ ${vf} ${item}. (${dat.p})`, c, a,
+    exp: `The affected person (${dat.p}) appears as a dative: se ${dat.pr} ${vf} ${item}.` };
+}
+
+function genQuestion(levelId, topicId) {
+  if (topicId === 'tenses') return makeDrillQuestion(levelId);
+  if (topicId === 'pronouns') return genPronounQuestion(levelId);
+  return genGenderQuestion(levelId);
+}
+
+// n unique generated questions, also avoiding any prompt text in `avoid`
+function makeGenSet(levelId, topicId, n, avoid = []) {
   const out = [];
-  const seen = new Set();
+  const seen = new Set(avoid);
   let guard = 0;
-  while (out.length < n && guard++ < 200) {
-    const q = makeDrillQuestion(levelId);
-    const key = q.q;
-    if (seen.has(key)) continue;
-    seen.add(key);
+  while (out.length < n && guard++ < 300) {
+    const q = genQuestion(levelId, topicId);
+    if (seen.has(q.q)) continue;
+    seen.add(q.q);
     out.push(q);
   }
   return out;
@@ -167,6 +412,28 @@ function placementResult(answers) {
 
 /* ---------- session state ---------- */
 
+// Draw n bank questions, never repeating one until the whole pool has been
+// seen (tracked per level:topic in localStorage).
+function bankSample(levelId, topicId, n) {
+  const bank = EXERCISES[levelId][topicId];
+  if (!state.seen) state.seen = {};
+  const key = statKey(levelId, topicId);
+  const seenArr = state.seen[key] || [];
+  const seen = new Set(seenArr);
+  const fresh = bank.map((_, i) => i).filter((i) => !seen.has(i));
+  let idxs;
+  if (fresh.length >= n) {
+    idxs = sample(fresh, n);
+    state.seen[key] = seenArr.concat(idxs);
+  } else {
+    // pool exhausted: serve the last fresh ones, top up from old, restart cycle
+    idxs = fresh.concat(sample(seenArr, n - fresh.length));
+    state.seen[key] = idxs.slice();
+  }
+  save();
+  return idxs.map((i) => bank[i]);
+}
+
 let session = null; // { mode, level, topic, questions, index, correct, answers, revealed }
 
 function startSession(mode, levelId, topicId) {
@@ -175,8 +442,25 @@ function startSession(mode, levelId, topicId) {
     questions = makePlacementSet();
   } else if (mode === 'drill') {
     questions = makeDrillSet(levelId, 10);
+  } else if (mode === 'mixed') {
+    // interleaved practice: 2 bank + 2 generated per topic, shuffled together
+    questions = [];
+    for (const t of TOPICS) {
+      const fromBank = bankSample(levelId, t.id, 2).map((q) => ({ ...q, _topic: t.id }));
+      const generated = makeGenSet(levelId, t.id, 2, fromBank.map((q) => q.q))
+        .map((q) => ({ ...q, _topic: t.id }));
+      questions.push(...fromBank, ...generated);
+    }
+    questions = shuffle(questions);
+  } else if (mode === 'review') {
+    questions = sample(reviewDue(), 10)
+      .map((r) => ({ ...r.q, _level: r.level, _topic: r.topic }));
+    if (questions.length === 0) { renderHome(); return; }
   } else {
-    questions = sample(EXERCISES[levelId][topicId], 8);
+    // 6 curated bank questions (cycled, no repeats) + 4 freshly generated
+    const fromBank = bankSample(levelId, topicId, 6);
+    const generated = makeGenSet(levelId, topicId, 4, fromBank.map((q) => q.q));
+    questions = shuffle(fromBank.concat(generated));
   }
   session = {
     mode, level: levelId, topic: topicId,
@@ -256,7 +540,31 @@ function renderHome() {
         <div class="card-actions">
           <button class="btn primary" data-drill="1">⚡ Start drill</button>
         </div>
+      </div>` + (() => {
+      const due = reviewDue().length;
+      const total = reviewQueue().length;
+      const reviewTxt = total === 0
+        ? 'Miss a question anywhere and it lands here — it comes back after 1 and 3 days until you master it.'
+        : due === 0
+          ? `All caught up! ${total} question${total === 1 ? '' : 's'} scheduled for later.`
+          : `<b>${due} question${due === 1 ? '' : 's'} due</b> (${total} in the queue). Reviewing just before you forget is where learning sticks.`;
+      return `
+      <div class="card topic-card drill-card">
+        <div class="topic-head"><span class="topic-icon">🔀</span><h3>Mixed Practice</h3></div>
+        <p class="topic-level-desc">Tenses, pronouns, and gender interleaved in one session —
+          harder than practicing one topic at a time, and better for retention.</p>
+        <div class="card-actions">
+          <button class="btn primary" data-mixed="1">🔀 Start mixed session</button>
+        </div>
+      </div>
+      <div class="card topic-card drill-card">
+        <div class="topic-head"><span class="topic-icon">⏰</span><h3>Review Queue</h3></div>
+        <p class="topic-level-desc">${reviewTxt}</p>
+        <div class="card-actions">
+          ${due > 0 ? '<button class="btn primary" data-review="1">⏰ Review now</button>' : ''}
+        </div>
       </div>`;
+    })();
 
     cards.querySelectorAll('[data-lesson]').forEach((b) =>
       b.addEventListener('click', () => renderLesson(state.level, b.dataset.lesson)));
@@ -264,6 +572,10 @@ function renderHome() {
       b.addEventListener('click', () => startSession('quiz', state.level, b.dataset.practice)));
     const drillBtn = cards.querySelector('[data-drill]');
     if (drillBtn) drillBtn.addEventListener('click', () => startSession('drill', state.level, null));
+    const mixedBtn = cards.querySelector('[data-mixed]');
+    if (mixedBtn) mixedBtn.addEventListener('click', () => startSession('mixed', state.level, null));
+    const reviewBtn = cards.querySelector('[data-review]');
+    if (reviewBtn) reviewBtn.addEventListener('click', () => startSession('review', state.level, null));
   }
 
   show('#view-home');
@@ -288,6 +600,8 @@ function renderPractice() {
   let title;
   if (s.mode === 'placement') title = '🧭 Placement quiz';
   else if (s.mode === 'drill') title = `🔥 Conjugation drill — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'mixed') title = `🔀 Mixed practice — ${levelById(s.level).cefr}`;
+  else if (s.mode === 'review') title = '⏰ Review queue';
   else title = `${topicById(s.topic).icon} ${topicById(s.topic).name} — ${levelById(s.level).cefr}`;
   $('#practice-title').textContent = title;
   $('#practice-progress').textContent = `${s.index + 1} / ${total}`;
@@ -368,8 +682,16 @@ function finishAnswer(ok, q, accentMiss) {
   if (ok) s.correct++;
 
   if (s.mode !== 'placement') {
-    // Drill results count toward the tenses topic
-    recordAnswer(s.level, s.mode === 'drill' ? 'tenses' : s.topic, ok);
+    // Drill results count toward the tenses topic; mixed/review questions
+    // carry their own topic (and, in review, their own level)
+    const topic = q._topic || (s.mode === 'drill' ? 'tenses' : s.topic);
+    const level = q._level || s.level;
+    recordAnswer(level, topic, ok);
+    if (s.mode === 'review') {
+      updateReviewEntry(q, ok);
+    } else if (!ok) {
+      addToReview(level, topic, q);
+    }
     renderHeader();
   }
 
@@ -422,9 +744,21 @@ function renderResults() {
     headline = pct >= 80 ? `¡Excelente! ${pct}%` : pct >= 50 ? `¡Bien hecho! ${pct}%` : `Keep going — ${pct}%`;
     sub = `You got ${s.correct} of ${s.questions.length}.`;
 
+    const missed = s.questions.length - s.correct;
+    if (s.mode === 'review') {
+      const due = reviewDue().length;
+      sub += due > 0
+        ? ` <b>${due}</b> still due — one more round?`
+        : ' Queue cleared for now. Correct answers come back in 1–3 days; answer each one right twice more and it graduates.';
+    } else if (missed > 0) {
+      sub += ` The ${missed} you missed ${missed === 1 ? 'is' : 'are'} in your
+        <b>review queue</b> — hitting them again is how they stick.`;
+    }
+
     // Adaptive suggestion based on recent rolling accuracy
+    // (single-topic modes only — mixed/review span topics and levels)
     const topic = s.mode === 'drill' ? 'tenses' : s.topic;
-    const acc = recentAccuracy(s.level, topic);
+    const acc = topic ? recentAccuracy(s.level, topic) : null;
     const idx = LEVELS.findIndex((l) => l.id === s.level);
     if (acc !== null && getStats(s.level, topic).recent.length >= 8) {
       if (acc >= 0.85 && idx < LEVELS.length - 1) {
@@ -461,8 +795,11 @@ function renderResults() {
   if (s.mode === 'placement') {
     againBtn.textContent = '🏠 Start learning';
     againBtn.onclick = () => renderHome();
+  } else if (s.mode === 'review' && reviewDue().length === 0) {
+    againBtn.textContent = '🏠 Home';
+    againBtn.onclick = () => renderHome();
   } else {
-    againBtn.textContent = '🔁 Practice again';
+    againBtn.textContent = s.mode === 'review' ? '⏰ Review again' : '🔁 Practice again';
     againBtn.onclick = () => startSession(s.mode, state.level, s.topic);
   }
 
