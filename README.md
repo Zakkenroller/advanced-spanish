@@ -26,36 +26,26 @@ your level for you.
 ## Features
 
 - **Lessons** — concise reference notes with conjugation and gender tables per level
-- **Practice quizzes** — multiple choice and typed answers, with instant explanations
+- **Practice quizzes** — multiple choice and typed answers, with instant explanations.
+  Each 10-question quiz mixes 6 curated questions with 4 freshly generated ones, and
+  curated questions never repeat until you've seen the whole pool for that topic
+- **A deep library** — 330 hand-written questions (22 per topic per level) plus
+  pronoun and gender generators built on noun, name, adjective, and verb banks:
+  hundreds of unique generated combinations per topic
 - **Accent-aware checking** — a near-miss on accents gets its own gentle feedback
   (plus on-screen accent buttons: á é í ó ú ñ ü)
+- **Conjugation drill** — unlimited generated questions across every tense unlocked
+  at your level, mixing 22 regular verbs with 12 core irregulars (ser, estar, ir,
+  tener, hacer, poder, querer, venir, decir, saber, poner, salir)
+- **Review queue (spaced repetition)** — every question you miss is scheduled for
+  review: due immediately, then 1 day and 3 days after each correct pass until it
+  graduates. Missing it again resets the clock
+- **Mixed practice** — tenses, pronouns, and gender interleaved in one 12-question
+  session, which is harder than blocked practice but better for long-term retention
 - **Adaptive difficulty** — the app tracks your rolling accuracy per topic and
   suggests moving up (≥85%) or reviewing a level down (≤50%)
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
   browser (localStorage); nothing leaves your machine
-
-## The Tense Lab
-
-The verb-tense side is built around findings from second-language-acquisition
-research (form-focused salience, VanPatten's processing instruction, and
-spaced/interleaved retrieval practice):
-
-- **Tense Toolkit** — a visual timeline of every tense, the photo-vs-video metaphor
-  for preterite/imperfect, trigger-word tables, and the classic mnemonics
-  (SIMBA, CHEATED, DOCTOR/PLACE, WEIRDO, the Three Amigos, the 12 irregular
-  futures, Car-Gar-Zar)
-- **Tense Detective** — interpretation exercises: decode who, when, and whether
-  it's finished from the verb form alone, the way processing-instruction research
-  recommends
-- **Story Mode** — cloze narratives per level, so tense choice is practiced in
-  connected discourse (the imperfect paints the set, the preterite moves the plot)
-- **Conjugation Drill** — unlimited generated questions across every tense unlocked
-  at your level, mixing regular verbs with core irregulars (ser, estar, ir, tener,
-  hacer, poder)
-- **Tense Workout** — an interleaved set (detective + curated exercises + drills
-  shuffled together), since mixed practice beats blocked practice for retention
-- **Smart Review** — every question you miss enters a Leitner queue and resurfaces
-  on a spaced schedule (10 min → 1 → 3 → 7 → 14 days, then it graduates)
 
 ## Running it
 
@@ -75,6 +65,7 @@ main branch.
 ```
 index.html   app shell and views
 styles.css   theme (light + dark) and layout
-data.js      levels, lessons, 150 hand-written exercises, conjugation tables
-app.js       quiz engine, drill generator, placement test, adaptive logic
+data.js      levels, lessons, 330 hand-written exercises, conjugation tables,
+             generator data banks (nouns, adjectives, names, verb patterns)
+app.js       quiz engine, question generators, placement test, adaptive logic
 ```
