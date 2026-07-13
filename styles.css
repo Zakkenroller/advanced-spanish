@@ -375,20 +375,16 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
 
 /* ---------- profile & avatars ---------- */
 
-/* Curated Premium Gradient Themes */
-.av-g-gold { background: linear-gradient(135deg, #ffe066 0%, #f5a623 100%); }
-.av-g-green { background: linear-gradient(135deg, #a8ff78 0%, #56ab2f 100%); }
-.av-g-spicy { background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%); }
-.av-g-tropical { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); }
-.av-g-sky { background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); }
-.av-g-ocean { background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%); }
-.av-g-peach { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
-.av-g-cosmic { background: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%); }
-.av-g-charcoal { background: linear-gradient(135deg, #778ca3 0%, #2f3542 100%); }
-.av-g-teal { background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%); }
+/* Avatars are inline SVG characters on pastel discs; the disc colour comes
+   from each avatar's data (AVATARS in app.js), set as an inline background. */
+
+.avatar-btn svg, .avatar-choice svg {
+  width: 76%; height: 76%; display: block; pointer-events: none;
+  transition: transform 0.15s ease;
+}
 
 .avatar-btn {
-  font: inherit; font-size: 1.35rem; cursor: pointer;
+  font: inherit; cursor: pointer;
   width: 2.5rem; height: 2.5rem;
   display: inline-flex; align-items: center; justify-content: center;
   border: 2px solid var(--line); border-radius: 50%;
@@ -401,11 +397,6 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-.avatar-btn .avatar-emoji {
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
-  line-height: 1;
-}
-
 .modal {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0, 0, 0, .45);
@@ -426,7 +417,7 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
   margin-bottom: 1rem;
 }
 .avatar-choice {
-  font: inherit; font-size: 1.35rem; cursor: pointer;
+  font: inherit; cursor: pointer;
   aspect-ratio: 1;
   display: inline-flex; align-items: center; justify-content: center;
   border: 2px solid var(--line); border-radius: 50%;
@@ -434,18 +425,13 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
   box-shadow: var(--shadow);
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.15s, box-shadow 0.15s;
 }
-.avatar-choice .avatar-emoji {
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
-  line-height: 1;
-  transition: transform 0.15s ease;
-}
 .avatar-choice:hover {
   border-color: var(--brand);
   transform: scale(1.12);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
-.avatar-choice:hover .avatar-emoji {
-  transform: scale(1.15) rotate(5deg);
+.avatar-choice:hover svg {
+  transform: scale(1.12) rotate(5deg);
 }
 .avatar-choice.selected {
   border-color: var(--brand);
