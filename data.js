@@ -1314,6 +1314,342 @@ const IRREGULAR_VERBS = [
 ];
 
 /* ============================================================
+   Verb Book data — the full conjugation reference. The engine in
+   app.js (conjugate/participle/gerund/verbParadigm) generates every
+   form from these declarative records. Flags per verb:
+     sc   vowel stem-change: 'e>ie' | 'o>ue' | 'e>i' | 'u>ue' | 'i>ie'
+     zc   -cer/-cir inceptive: yo + subjunctive take -zc- (conozco)
+     acc  accented i/u in stressed present: 'í' (envío) | 'ú' (continúo)
+     stem irregular future/conditional stem (e.g. 'tendr')
+     forms explicit per-tense arrays for the genuinely irregular slots
+   Orthographic changes (-car/-gar/-zar/-guar, -ger/-gir, -guir, -uir)
+   are auto-detected from the ending — no flag needed.
+   ============================================================ */
+
+// Auxiliary `haber` for the compound tenses (participle added by the engine).
+const HABER_AUX = {
+  perfect:            ['he', 'has', 'ha', 'hemos', 'habéis', 'han'],
+  pluperfect:         ['había', 'habías', 'había', 'habíamos', 'habíais', 'habían'],
+  futurePerfect:      ['habré', 'habrás', 'habrá', 'habremos', 'habréis', 'habrán'],
+  conditionalPerfect: ['habría', 'habrías', 'habría', 'habríamos', 'habríais', 'habrían'],
+};
+
+// Only the participles that break the -ado/-ido pattern (vowel-clash accents
+// like leído/caído are handled by the engine, so they're not listed here).
+const IRREGULAR_PARTICIPLES = {
+  ser: 'sido', ver: 'visto', hacer: 'hecho', decir: 'dicho', poner: 'puesto',
+  escribir: 'escrito', describir: 'descrito', abrir: 'abierto', cubrir: 'cubierto',
+  descubrir: 'descubierto', volver: 'vuelto', devolver: 'devuelto', envolver: 'envuelto',
+  resolver: 'resuelto', romper: 'roto', morir: 'muerto',
+};
+
+// Only the gerunds the engine can't derive from the stem/stem-change.
+const IRREGULAR_GERUNDS = {
+  ir: 'yendo', ser: 'siendo', ver: 'viendo',
+  poder: 'pudiendo', venir: 'viniendo', decir: 'diciendo',
+};
+
+// Display order for the conjugation table, grouped by mood.
+const PARADIGM_GROUPS = [
+  { label: 'Indicative — simple',   tenses: ['present', 'preterite', 'imperfect', 'future', 'conditional'] },
+  { label: 'Indicative — compound', tenses: ['perfect', 'pluperfect', 'futurePerfect', 'conditionalPerfect'] },
+  { label: 'Subjunctive',           tenses: ['presentSubj', 'imperfectSubj'] },
+];
+
+// Common verbs beyond the drill's core set. Regular/patterned verbs are tiny;
+// the genuinely irregular ones carry explicit `forms` for the slots that break.
+const MORE_VERBS = [
+  // ----- regular -ar -----
+  { inf: 'llamar',    en: 'to call' },
+  { inf: 'llevar',    en: 'to carry / wear' },
+  { inf: 'dejar',     en: 'to leave / let' },
+  { inf: 'quedar',    en: 'to stay / remain' },
+  { inf: 'pasar',     en: 'to pass / spend (time)' },
+  { inf: 'tomar',     en: 'to take / drink' },
+  { inf: 'mirar',     en: 'to look at' },
+  { inf: 'necesitar', en: 'to need' },
+  { inf: 'esperar',   en: 'to wait / hope' },
+  { inf: 'usar',      en: 'to use' },
+  { inf: 'ganar',     en: 'to win / earn' },
+  { inf: 'preguntar', en: 'to ask' },
+  { inf: 'entrar',    en: 'to enter' },
+  { inf: 'terminar',  en: 'to finish' },
+  { inf: 'ayudar',    en: 'to help' },
+  { inf: 'gustar',    en: 'to please / like' },
+  { inf: 'preparar',  en: 'to prepare' },
+  { inf: 'enseñar',   en: 'to teach / show' },
+  { inf: 'nadar',     en: 'to swim' },
+  { inf: 'lavar',     en: 'to wash' },
+  { inf: 'limpiar',   en: 'to clean' },
+  { inf: 'invitar',   en: 'to invite' },
+  { inf: 'olvidar',   en: 'to forget' },
+  { inf: 'regresar',  en: 'to return' },
+  { inf: 'saludar',   en: 'to greet' },
+  { inf: 'cambiar',   en: 'to change' },
+  { inf: 'acabar',    en: 'to finish / just done' },
+  { inf: 'aceptar',   en: 'to accept' },
+  { inf: 'contestar', en: 'to answer' },
+  { inf: 'desear',    en: 'to wish / desire' },
+  { inf: 'mandar',    en: 'to send / order' },
+  { inf: 'parar',     en: 'to stop' },
+  // ----- -ar with orthographic spelling change -----
+  { inf: 'buscar',    en: 'to look for' },
+  { inf: 'tocar',     en: 'to touch / play' },
+  { inf: 'sacar',     en: 'to take out' },
+  { inf: 'practicar', en: 'to practice' },
+  { inf: 'explicar',  en: 'to explain' },
+  { inf: 'llegar',    en: 'to arrive' },
+  { inf: 'pagar',     en: 'to pay' },
+  { inf: 'cruzar',    en: 'to cross' },
+  { inf: 'organizar', en: 'to organize' },
+  { inf: 'utilizar',  en: 'to use / utilize' },
+  { inf: 'averiguar', en: 'to find out' },
+  // ----- -ar with stem change -----
+  { inf: 'pensar',    en: 'to think',        sc: 'e>ie' },
+  { inf: 'cerrar',    en: 'to close',        sc: 'e>ie' },
+  { inf: 'despertar', en: 'to wake up',      sc: 'e>ie' },
+  { inf: 'sentar',    en: 'to seat',         sc: 'e>ie' },
+  { inf: 'recomendar',en: 'to recommend',    sc: 'e>ie' },
+  { inf: 'empezar',   en: 'to begin',        sc: 'e>ie' },
+  { inf: 'comenzar',  en: 'to begin',        sc: 'e>ie' },
+  { inf: 'negar',     en: 'to deny',         sc: 'e>ie' },
+  { inf: 'jugar',     en: 'to play',         sc: 'u>ue' },
+  { inf: 'contar',    en: 'to count / tell', sc: 'o>ue' },
+  { inf: 'mostrar',   en: 'to show',         sc: 'o>ue' },
+  { inf: 'recordar',  en: 'to remember',     sc: 'o>ue' },
+  { inf: 'encontrar', en: 'to find',         sc: 'o>ue' },
+  { inf: 'volar',     en: 'to fly',          sc: 'o>ue' },
+  { inf: 'costar',    en: 'to cost',         sc: 'o>ue' },
+  { inf: 'probar',    en: 'to try / prove',  sc: 'o>ue' },
+  { inf: 'soñar',     en: 'to dream',        sc: 'o>ue' },
+  { inf: 'acostar',   en: 'to put to bed',   sc: 'o>ue' },
+  { inf: 'almorzar',  en: 'to have lunch',   sc: 'o>ue' },
+  // ----- -ar with accented i/u -----
+  { inf: 'enviar',    en: 'to send',     acc: 'í' },
+  { inf: 'guiar',     en: 'to guide',    acc: 'í' },
+  { inf: 'variar',    en: 'to vary',     acc: 'í' },
+  { inf: 'continuar', en: 'to continue', acc: 'ú' },
+  { inf: 'actuar',    en: 'to act',      acc: 'ú' },
+  { inf: 'situar',    en: 'to situate',  acc: 'ú' },
+
+  // ----- regular -er -----
+  { inf: 'comprender', en: 'to understand' },
+  { inf: 'deber',      en: 'to must / owe' },
+  { inf: 'temer',      en: 'to fear' },
+  { inf: 'meter',      en: 'to put in' },
+  { inf: 'prometer',   en: 'to promise' },
+  { inf: 'sorprender', en: 'to surprise' },
+  { inf: 'depender',   en: 'to depend' },
+  { inf: 'coser',      en: 'to sew' },
+  { inf: 'romper',     en: 'to break' },
+  // ----- -eer (vowel-clash: explicit preterite + imperfect subjunctive) -----
+  {
+    inf: 'leer', en: 'to read',
+    forms: {
+      preterite:     ['leí', 'leíste', 'leyó', 'leímos', 'leísteis', 'leyeron'],
+      imperfectSubj: ['leyera', 'leyeras', 'leyera', 'leyéramos', 'leyerais', 'leyeran'],
+    },
+  },
+  {
+    inf: 'creer', en: 'to believe',
+    forms: {
+      preterite:     ['creí', 'creíste', 'creyó', 'creímos', 'creísteis', 'creyeron'],
+      imperfectSubj: ['creyera', 'creyeras', 'creyera', 'creyéramos', 'creyerais', 'creyeran'],
+    },
+  },
+  // ----- -er with stem change -----
+  { inf: 'perder',   en: 'to lose',       sc: 'e>ie' },
+  { inf: 'entender', en: 'to understand', sc: 'e>ie' },
+  { inf: 'encender', en: 'to light',      sc: 'e>ie' },
+  { inf: 'defender', en: 'to defend',     sc: 'e>ie' },
+  { inf: 'volver',   en: 'to return',     sc: 'o>ue' },
+  { inf: 'devolver', en: 'to give back',  sc: 'o>ue' },
+  { inf: 'envolver', en: 'to wrap',       sc: 'o>ue' },
+  { inf: 'resolver', en: 'to resolve',    sc: 'o>ue' },
+  { inf: 'mover',    en: 'to move',       sc: 'o>ue' },
+  { inf: 'morder',   en: 'to bite',       sc: 'o>ue' },
+  { inf: 'doler',    en: 'to hurt',       sc: 'o>ue' },
+  { inf: 'soler',    en: 'to usually do', sc: 'o>ue' },
+  { inf: 'llover',   en: 'to rain',       sc: 'o>ue' },
+  // ----- -cer/-cir inceptive (-zco) -----
+  { inf: 'conocer',    en: 'to know',    zc: true },
+  { inf: 'parecer',    en: 'to seem',    zc: true },
+  { inf: 'ofrecer',    en: 'to offer',   zc: true },
+  { inf: 'crecer',     en: 'to grow',    zc: true },
+  { inf: 'nacer',      en: 'to be born', zc: true },
+  { inf: 'merecer',    en: 'to deserve', zc: true },
+  { inf: 'obedecer',   en: 'to obey',    zc: true },
+  { inf: 'agradecer',  en: 'to thank',   zc: true },
+  { inf: 'establecer', en: 'to establish', zc: true },
+  { inf: 'pertenecer', en: 'to belong',  zc: true },
+  // ----- -cer/-cir consonant (c→z) -----
+  { inf: 'vencer',    en: 'to defeat' },
+  { inf: 'convencer', en: 'to convince' },
+  { inf: 'ejercer',   en: 'to exercise / practice' },
+
+  // ----- regular -ir -----
+  { inf: 'partir',    en: 'to leave / split' },
+  { inf: 'permitir',  en: 'to permit' },
+  { inf: 'existir',   en: 'to exist' },
+  { inf: 'sufrir',    en: 'to suffer' },
+  { inf: 'discutir',  en: 'to discuss / argue' },
+  { inf: 'unir',      en: 'to unite' },
+  { inf: 'añadir',    en: 'to add' },
+  { inf: 'asistir',   en: 'to attend' },
+  { inf: 'insistir',  en: 'to insist' },
+  { inf: 'admitir',   en: 'to admit' },
+  { inf: 'ocurrir',   en: 'to happen' },
+  { inf: 'describir', en: 'to describe' },
+  { inf: 'cubrir',    en: 'to cover' },
+  { inf: 'descubrir', en: 'to discover' },
+  // ----- -ir with stem change -----
+  { inf: 'pedir',     en: 'to ask for',  sc: 'e>i' },
+  { inf: 'servir',    en: 'to serve',    sc: 'e>i' },
+  { inf: 'repetir',   en: 'to repeat',   sc: 'e>i' },
+  { inf: 'medir',     en: 'to measure',  sc: 'e>i' },
+  { inf: 'vestir',    en: 'to dress',    sc: 'e>i' },
+  { inf: 'despedir',  en: 'to say goodbye / fire', sc: 'e>i' },
+  { inf: 'impedir',   en: 'to prevent',  sc: 'e>i' },
+  { inf: 'seguir',    en: 'to follow',   sc: 'e>i' },
+  { inf: 'conseguir', en: 'to obtain',   sc: 'e>i' },
+  { inf: 'elegir',    en: 'to choose',   sc: 'e>i' },
+  { inf: 'corregir',  en: 'to correct',  sc: 'e>i' },
+  { inf: 'sentir',    en: 'to feel',     sc: 'e>ie' },
+  { inf: 'preferir',  en: 'to prefer',   sc: 'e>ie' },
+  { inf: 'mentir',    en: 'to lie',      sc: 'e>ie' },
+  { inf: 'sugerir',   en: 'to suggest',  sc: 'e>ie' },
+  { inf: 'divertir',  en: 'to amuse',    sc: 'e>ie' },
+  { inf: 'convertir', en: 'to convert',  sc: 'e>ie' },
+  { inf: 'herir',     en: 'to wound',    sc: 'e>ie' },
+  { inf: 'dormir',    en: 'to sleep',    sc: 'o>ue' },
+  { inf: 'morir',     en: 'to die',      sc: 'o>ue' },
+  { inf: 'distinguir',en: 'to distinguish' },
+  // ----- -uir (y-insertion, handled by the engine) -----
+  { inf: 'construir',  en: 'to build' },
+  { inf: 'incluir',    en: 'to include' },
+  { inf: 'destruir',   en: 'to destroy' },
+  { inf: 'huir',       en: 'to flee' },
+  { inf: 'concluir',   en: 'to conclude' },
+  { inf: 'contribuir', en: 'to contribute' },
+  { inf: 'distribuir', en: 'to distribute' },
+  { inf: 'influir',    en: 'to influence' },
+  { inf: 'sustituir',  en: 'to substitute' },
+  { inf: 'disminuir',  en: 'to decrease' },
+
+  // ----- fully irregular (explicit forms) -----
+  {
+    inf: 'haber', en: 'to have (auxiliary)',
+    stem: 'habr',
+    forms: {
+      present:       ['he', 'has', 'ha', 'hemos', 'habéis', 'han'],
+      preterite:     ['hube', 'hubiste', 'hubo', 'hubimos', 'hubisteis', 'hubieron'],
+      presentSubj:   ['haya', 'hayas', 'haya', 'hayamos', 'hayáis', 'hayan'],
+      imperfectSubj: ['hubiera', 'hubieras', 'hubiera', 'hubiéramos', 'hubierais', 'hubieran'],
+    },
+  },
+  {
+    inf: 'dar', en: 'to give',
+    forms: {
+      present:       ['doy', 'das', 'da', 'damos', 'dais', 'dan'],
+      preterite:     ['di', 'diste', 'dio', 'dimos', 'disteis', 'dieron'],
+      presentSubj:   ['dé', 'des', 'dé', 'demos', 'deis', 'den'],
+      imperfectSubj: ['diera', 'dieras', 'diera', 'diéramos', 'dierais', 'dieran'],
+    },
+  },
+  {
+    inf: 'ver', en: 'to see',
+    forms: {
+      present:       ['veo', 'ves', 've', 'vemos', 'veis', 'ven'],
+      imperfect:     ['veía', 'veías', 'veía', 'veíamos', 'veíais', 'veían'],
+      preterite:     ['vi', 'viste', 'vio', 'vimos', 'visteis', 'vieron'],
+      presentSubj:   ['vea', 'veas', 'vea', 'veamos', 'veáis', 'vean'],
+      imperfectSubj: ['viera', 'vieras', 'viera', 'viéramos', 'vierais', 'vieran'],
+    },
+  },
+  {
+    inf: 'andar', en: 'to walk',
+    forms: {
+      preterite:     ['anduve', 'anduviste', 'anduvo', 'anduvimos', 'anduvisteis', 'anduvieron'],
+      imperfectSubj: ['anduviera', 'anduvieras', 'anduviera', 'anduviéramos', 'anduvierais', 'anduvieran'],
+    },
+  },
+  {
+    inf: 'caer', en: 'to fall',
+    forms: {
+      present:       ['caigo', 'caes', 'cae', 'caemos', 'caéis', 'caen'],
+      preterite:     ['caí', 'caíste', 'cayó', 'caímos', 'caísteis', 'cayeron'],
+      presentSubj:   ['caiga', 'caigas', 'caiga', 'caigamos', 'caigáis', 'caigan'],
+      imperfectSubj: ['cayera', 'cayeras', 'cayera', 'cayéramos', 'cayerais', 'cayeran'],
+    },
+  },
+  {
+    inf: 'traer', en: 'to bring',
+    forms: {
+      present:       ['traigo', 'traes', 'trae', 'traemos', 'traéis', 'traen'],
+      preterite:     ['traje', 'trajiste', 'trajo', 'trajimos', 'trajisteis', 'trajeron'],
+      presentSubj:   ['traiga', 'traigas', 'traiga', 'traigamos', 'traigáis', 'traigan'],
+      imperfectSubj: ['trajera', 'trajeras', 'trajera', 'trajéramos', 'trajerais', 'trajeran'],
+    },
+  },
+  {
+    inf: 'valer', en: 'to be worth',
+    stem: 'valdr',
+    forms: {
+      present:     ['valgo', 'vales', 'vale', 'valemos', 'valéis', 'valen'],
+      presentSubj: ['valga', 'valgas', 'valga', 'valgamos', 'valgáis', 'valgan'],
+    },
+  },
+  {
+    inf: 'caber', en: 'to fit',
+    stem: 'cabr',
+    forms: {
+      present:       ['quepo', 'cabes', 'cabe', 'cabemos', 'cabéis', 'caben'],
+      preterite:     ['cupe', 'cupiste', 'cupo', 'cupimos', 'cupisteis', 'cupieron'],
+      presentSubj:   ['quepa', 'quepas', 'quepa', 'quepamos', 'quepáis', 'quepan'],
+      imperfectSubj: ['cupiera', 'cupieras', 'cupiera', 'cupiéramos', 'cupierais', 'cupieran'],
+    },
+  },
+  {
+    inf: 'conducir', en: 'to drive',
+    forms: {
+      present:       ['conduzco', 'conduces', 'conduce', 'conducimos', 'conducís', 'conducen'],
+      preterite:     ['conduje', 'condujiste', 'condujo', 'condujimos', 'condujisteis', 'condujeron'],
+      presentSubj:   ['conduzca', 'conduzcas', 'conduzca', 'conduzcamos', 'conduzcáis', 'conduzcan'],
+      imperfectSubj: ['condujera', 'condujeras', 'condujera', 'condujéramos', 'condujerais', 'condujeran'],
+    },
+  },
+  {
+    inf: 'traducir', en: 'to translate',
+    forms: {
+      present:       ['traduzco', 'traduces', 'traduce', 'traducimos', 'traducís', 'traducen'],
+      preterite:     ['traduje', 'tradujiste', 'tradujo', 'tradujimos', 'tradujisteis', 'tradujeron'],
+      presentSubj:   ['traduzca', 'traduzcas', 'traduzca', 'traduzcamos', 'traduzcáis', 'traduzcan'],
+      imperfectSubj: ['tradujera', 'tradujeras', 'tradujera', 'tradujéramos', 'tradujerais', 'tradujeran'],
+    },
+  },
+  {
+    inf: 'producir', en: 'to produce',
+    forms: {
+      present:       ['produzco', 'produces', 'produce', 'producimos', 'producís', 'producen'],
+      preterite:     ['produje', 'produjiste', 'produjo', 'produjimos', 'produjisteis', 'produjeron'],
+      presentSubj:   ['produzca', 'produzcas', 'produzca', 'produzcamos', 'produzcáis', 'produzcan'],
+      imperfectSubj: ['produjera', 'produjeras', 'produjera', 'produjéramos', 'produjerais', 'produjeran'],
+    },
+  },
+];
+
+// One de-duplicated, alphabetically-sorted list of every verb for the Verb Book.
+// The drill keeps using REGULAR_VERBS / IRREGULAR_VERBS directly (pool unchanged).
+const VERB_LIST = (() => {
+  const seen = new Set();
+  const out = [];
+  [].concat(REGULAR_VERBS, IRREGULAR_VERBS, MORE_VERBS).forEach((v) => {
+    if (!seen.has(v.inf)) { seen.add(v.inf); out.push(v); }
+  });
+  return out.sort((a, b) => a.inf.localeCompare(b.inf, 'es'));
+})();
+
+/* ============================================================
    Generator data — powers the unlimited pronoun & gender
    question generators (see app.js). Quizzes mix these with the
    hand-written bank so no session feels like a rerun.

@@ -60,6 +60,16 @@
     </div>
   </div>
 
+  <!-- VERB CONJUGATION MODAL -->
+  <div id="verb-modal" class="modal hidden" role="dialog" aria-label="Verb conjugation">
+    <div class="modal-card card verb-card">
+      <div id="verb-modal-body"></div>
+      <div class="card-actions modal-actions">
+        <button class="btn ghost" id="verb-close">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Netlify Forms registration for question flags (processed at deploy time) -->
   <form name="question-flag" data-netlify="true" netlify-honeypot="website" hidden>
     <input type="text" name="website">
@@ -117,6 +127,18 @@
       <p class="lab-intro">Timelines, metaphors, trigger words, and mnemonics — the mental
         shortcuts that make tenses click. Level tags show when each one becomes relevant.</p>
       <div id="toolkit-body" class="toolkit-body"></div>
+    </section>
+
+    <!-- VERB BOOK -->
+    <section id="view-verbs" class="view">
+      <button class="btn ghost small home-link">← Back</button>
+      <h2>📚 Verb Book</h2>
+      <p class="lab-intro">Every verb, fully conjugated — like an old verb-tense book.
+        Tap any verb for its complete table: all simple and compound tenses, plus the
+        participle and gerund.</p>
+      <input id="verb-search" type="search" class="verb-search"
+             placeholder="Search a verb (Spanish or English)…" autocomplete="off">
+      <div id="verb-list" class="verb-book-list"></div>
     </section>
 
     <!-- PRACTICE -->
