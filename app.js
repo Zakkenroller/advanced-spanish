@@ -136,8 +136,48 @@ function updateReviewEntry(q, ok) {
   save();
 }
 
-/* ---------- conjugation drill generator ---------- */
+/* ---------- conjugation engine ----------
+   A layered generator that turns an infinitive (plus a few declarative flags)
+   into any form. Precedence, highest first:
+     1. explicit `forms[tense]`  — the truly irregular paradigms
+     2. vowel stem-change (`sc`) — pienso, puedo, pido …
+     3. orthographic spelling fix — busqué, llegué, sigo …
+     4. regular endings
+   Verb-record flags (all optional): `forms` (explicit per-tense arrays),
+   `stem` (irregular future/conditional stem, e.g. 'tendr'), `sc` (stem-vowel
+   change 'e>ie' | 'o>ue' | 'e>i' | 'u>ue' | 'i>ie'), `zc` (-cer/-cir → -zc yo /
+   subj: conozco), `acc` ('í'|'ú' — accented i/u in stressed present: envío). */
 
+const VOWELS = 'aeiouáéíóúü';
+const isVowelChar = (c) => !!c && VOWELS.includes(c);
+
+function verbType(inf) {
+  if (inf.endsWith('ar')) return 'ar';
+  if (inf.endsWith('er')) return 'er';
+  return 'ir'; // covers -ir and accented -ír (oír, reír)
+}
+
+// -uir verbs (construir, huir) insert/swap a y; -guir/-quir do not.
+function isUir(inf) {
+  return inf.endsWith('uir') && !inf.endsWith('guir') && !inf.endsWith('quir');
+}
+
+// 'e>ie' -> { from:'e', primary:'ie', secondary:'i' }. The secondary vowel is
+// what -ir stem-changers use in the preterite/gerund/subjunctive-nosotros.
+function diphthong(sc) {
+  const [from, primary] = sc.split('>');
+  const secondary = { ie: 'i', ue: 'u', i: 'i' }[primary] || primary;
+  return { from, primary, secondary };
+}
+
+// Replace the LAST occurrence of `from` in the stem (the stressed vowel).
+function swapLast(stem, from, to) {
+  const i = stem.lastIndexOf(from);
+  return i < 0 ? stem : stem.slice(0, i) + to + stem.slice(i + 1);
+}
+
+// The pure regular form — no stem/spelling changes. Kept deliberately dumb:
+// callers use it to test whether a verb behaves regularly in a given slot.
 function conjugateRegular(inf, tense, person) {
   const type = inf.slice(-2); // ar/er/ir
   const stem = inf.slice(0, -2);
@@ -147,18 +187,137 @@ function conjugateRegular(inf, tense, person) {
   return stem + REGULAR_ENDINGS[tense][type][person];
 }
 
-function conjugate(verb, tense, person) {
-  if (verb.forms) {
-    if (verb.forms[tense]) return verb.forms[tense][person];
-    if (tense === 'future' || tense === 'conditional') {
-      const stem = verb.stem || verb.inf;
-      return stem + REGULAR_ENDINGS[tense].all[person];
-    }
-    // imperfect for stem-changers like tener/hacer/poder/estar is regular
-    return conjugateRegular(verb.inf, tense, person);
+// Apply the vowel stem-change for the slot, if the verb declares one.
+function stemChanged(stem, verb, tense, person) {
+  if (!verb.sc) return stem;
+  const { from, primary, secondary } = diphthong(verb.sc);
+  const stressed = person === 0 || person === 1 || person === 2 || person === 5;
+  const isIr = verbType(verb.inf) === 'ir';
+  let to = null;
+  if (tense === 'present') {
+    if (stressed) to = primary;
+  } else if (tense === 'presentSubj') {
+    if (stressed) to = primary;
+    else if (isIr) to = secondary; // pidamos, durmamos
+  } else if (tense === 'preterite') {
+    if (isIr && (person === 2 || person === 5)) to = secondary; // pidió, durmieron
+  } else if (tense === 'imperfectSubj') {
+    if (isIr) to = secondary; // built on the preterite stem: pidiera
   }
-  return conjugateRegular(verb.inf, tense, person);
+  return to ? swapLast(stem, from, to) : stem;
 }
+
+// Orthographic guard: fix a stem's final consonant for the ending that follows,
+// so the sound is preserved (busqué, llegué, empiece, protejo, sigo, venzo).
+function orthoStem(stem, ending, inf) {
+  const c0 = ending[0];
+  const frontE = c0 === 'e' || c0 === 'é';
+  const backOA = c0 === 'o' || c0 === 'ó' || c0 === 'a' || c0 === 'á';
+  if (frontE) {
+    if (inf.endsWith('guar') && stem.endsWith('gu')) return stem.slice(0, -2) + 'gü';
+    if (inf.endsWith('car') && stem.endsWith('c')) return stem.slice(0, -1) + 'qu';
+    if (inf.endsWith('gar') && stem.endsWith('g')) return stem.slice(0, -1) + 'gu';
+    if (inf.endsWith('zar') && stem.endsWith('z')) return stem.slice(0, -1) + 'c';
+  } else if (backOA) {
+    if (inf.endsWith('guir') && stem.endsWith('gu')) return stem.slice(0, -2) + 'g';
+    if ((inf.endsWith('ger') || inf.endsWith('gir')) && stem.endsWith('g')) {
+      return stem.slice(0, -1) + 'j';
+    }
+    // consonant + cer/cir → c→z (vencer→venzo); vowel+cer uses the `zc` flag
+    if ((inf.endsWith('cer') || inf.endsWith('cir')) && stem.endsWith('c')
+        && !isVowelChar(stem[stem.length - 2])) {
+      return stem.slice(0, -1) + 'z';
+    }
+  }
+  return stem;
+}
+
+// -uir: y appears before endings that start o/e/a, and i→y between vowels.
+function uirAssemble(stem, ending) {
+  const c0 = ending[0];
+  if (c0 === 'i' && isVowelChar(ending[1])) return stem + 'y' + ending.slice(1); // ió, ieron, iera
+  if ('oeaóéá'.includes(c0)) return stem + 'y' + ending; // construyo, construya, construyáis
+  return stem + ending; // construí, construimos, construís, construía
+}
+
+function conjugate(verb, tense, person) {
+  if (verb.forms && verb.forms[tense]) return verb.forms[tense][person];
+  if (tense === 'future' || tense === 'conditional') {
+    return (verb.stem || verb.inf) + REGULAR_ENDINGS[tense].all[person];
+  }
+  // imperfect takes no stem/spelling change — always regular
+  if (tense === 'imperfect') return conjugateRegular(verb.inf, tense, person);
+
+  const inf = verb.inf;
+  const ending = REGULAR_ENDINGS[tense][verbType(inf)][person];
+  let stem = stemChanged(inf.slice(0, -2), verb, tense, person);
+  // accented i/u in stressed present (envío, continúo)
+  if (verb.acc && (tense === 'present' || tense === 'presentSubj')
+      && (person === 0 || person === 1 || person === 2 || person === 5)) {
+    stem = swapLast(stem, verb.acc === 'í' ? 'i' : 'u', verb.acc);
+  }
+  if (isUir(inf)) return uirAssemble(stem, ending);
+  stem = orthoStem(stem, ending, inf);
+  // -cer/-cir inceptive: yo + all present-subjunctive gain -zc- (conozco).
+  // Runs after orthoStem so the c→z guard doesn't touch the new -zc-.
+  if (verb.zc && stem.endsWith('c')
+      && ((tense === 'present' && person === 0) || tense === 'presentSubj')) {
+    stem = stem.slice(0, -1) + 'zc';
+  }
+  return stem + ending;
+}
+
+/* Participle & gerund — regular by default, with small override maps in
+   data.js for the handful that break the pattern (hecho, dicho, yendo…). */
+
+function participle(verb) {
+  if (IRREGULAR_PARTICIPLES[verb.inf]) return IRREGULAR_PARTICIPLES[verb.inf];
+  const stem = verb.inf.slice(0, -2);
+  if (verbType(verb.inf) === 'ar') return stem + 'ado';
+  return (/[aeo]$/.test(stem) ? stem + 'ído' : stem + 'ido'); // leído, caído
+}
+
+function gerund(verb) {
+  if (IRREGULAR_GERUNDS[verb.inf]) return IRREGULAR_GERUNDS[verb.inf];
+  const inf = verb.inf;
+  let stem = inf.slice(0, -2);
+  if (verbType(inf) === 'ar') return stem + 'ando';
+  if (isUir(inf)) return stem + 'yendo'; // construyendo
+  if (/[aeoáéó]$/.test(stem)) return stem + 'yendo'; // leyendo, cayendo, trayendo
+  if (verbType(inf) === 'ir' && verb.sc) {
+    const { from, secondary } = diphthong(verb.sc);
+    stem = swapLast(stem, from, secondary); // pidiendo, durmiendo
+  }
+  return stem + 'iendo';
+}
+
+// Compound tenses = the right form of haber + the participle (he hablado…).
+function conjugateCompound(verb, tense, person) {
+  return HABER_AUX[tense][person] + ' ' + participle(verb);
+}
+
+// One entry point for any tense, simple or compound.
+function conjugateAny(verb, tense, person) {
+  return HABER_AUX[tense]
+    ? conjugateCompound(verb, tense, person)
+    : conjugate(verb, tense, person);
+}
+
+// The full paradigm for the Verb Book: non-finite forms + every tense × person.
+function verbParadigm(verb) {
+  const out = {
+    infinitive: verb.inf,
+    participle: participle(verb),
+    gerund: gerund(verb),
+    tenses: {},
+  };
+  PARADIGM_GROUPS.forEach((g) => g.tenses.forEach((t) => {
+    out.tenses[t] = PERSONS.map((_, i) => conjugateAny(verb, t, i));
+  }));
+  return out;
+}
+
+/* ---------- conjugation drill generator ---------- */
 
 /* Weak-forms tracking: verb×tense combos you miss get drilled more often.
    Weights rise on a miss (max 5) and fall on a hit; at 0 the combo returns
@@ -224,7 +383,7 @@ function makeDrillQuestion(levelId) {
   return {
     t: 'type',
     q: `${frame.pre} ${subject} ___ ${comp}${frame.post}<br>
-      <small class="drill-hint"><b>${verb.inf}</b> (${verb.en}) — ${info.name} (${info.en})</small>`,
+      <small class="drill-hint"><button type="button" class="verb-link" data-verb="${verb.inf}">${verb.inf}</button> (${verb.en}) — ${info.name} (${info.en})</small>`,
     a: [answer],
     exp: `${frame.pre} ${subject} ${answer} ${comp}${frame.post} — ${verb.inf} in the ${info.en}.`,
     _drill: `${verb.inf}|${tense}`,
@@ -1080,12 +1239,19 @@ function renderLab() {
       <p class="topic-level-desc">Interleaved set: detective questions, curated exercises, and
         drills shuffled together — mixed practice beats blocked practice.</p>
       <div class="card-actions"><button class="btn primary" id="workout-btn">🏋️ Mix it up</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">📚</span><h3>Verb Book</h3></div>
+      <p class="topic-level-desc">Look up any of <b>${VERB_LIST.length} verbs</b> and see it fully
+        conjugated — every tense, plus participle and gerund. Just like the old verb-tense books.</p>
+      <div class="card-actions"><button class="btn primary" id="verbbook-btn">📖 Browse verbs</button></div>
     </div>`;
 
   $('#toolkit-btn').addEventListener('click', renderToolkit);
   $('#detective-btn').addEventListener('click', () => startSession('detective', state.level, null));
   $('#story-btn').addEventListener('click', () => startSession('story', state.level, null));
   $('#workout-btn').addEventListener('click', () => startSession('workout', state.level, null));
+  $('#verbbook-btn').addEventListener('click', renderVerbBook);
 }
 
 function renderToolkit() {
@@ -1182,6 +1348,73 @@ function openTenseModal(key) {
   $('#tense-modal').classList.remove('hidden');
 }
 
+/* ---------- verb book: full conjugation tables ----------
+   Mirrors the tense modal: a data-attribute + delegated click opens a popup,
+   here showing a verb's whole paradigm generated by the engine above. */
+
+// Spanish + English name for any tense (simple names live in TENSE_INFO;
+// compound ones only in TENSE_REFERENCE).
+function tenseLabel(t) {
+  if (TENSE_INFO[t]) return { es: TENSE_INFO[t].name, en: TENSE_INFO[t].en };
+  const r = TENSE_REFERENCE[t];
+  return { es: r.names[0], en: r.names[r.names.length - 1] };
+}
+
+// One mood-group table: persons down the side, tenses across the top.
+function conjTableHTML(group, para) {
+  const heads = group.tenses.map((t) => {
+    const n = tenseLabel(t);
+    return `<th>${esc(n.es)}<br><small>${esc(n.en)}</small></th>`;
+  }).join('');
+  const rows = PERSONS.map((p, i) => {
+    const cells = group.tenses.map((t) => `<td>${esc(para.tenses[t][i])}</td>`).join('');
+    return `<tr><th class="person">${esc(p.label)}</th>${cells}</tr>`;
+  }).join('');
+  return `<div class="conj-scroll"><table class="conj-table">
+    <tr><th></th>${heads}</tr>${rows}</table></div>`;
+}
+
+function openVerbModal(inf) {
+  const verb = allVerbs().find((v) => v.inf === inf);
+  if (!verb) return;
+  const para = verbParadigm(verb);
+  const tag = verb.forms ? 'irregular'
+    : verb.sc ? `stem-changing (${verb.sc.replace('>', '→')})`
+      : 'regular';
+  $('#verb-modal-body').innerHTML = `
+    <h3>📚 ${esc(verb.inf)} <small class="verb-en">— ${esc(verb.en)}</small></h3>
+    <p class="verb-tag">${esc(tag)}</p>
+    <table class="conj-table nonfinite">
+      <tr><th>infinitive</th><td>${esc(para.infinitive)}</td></tr>
+      <tr><th>participle</th><td>${esc(para.participle)}</td></tr>
+      <tr><th>gerund</th><td>${esc(para.gerund)}</td></tr>
+    </table>
+    ${PARADIGM_GROUPS.map((g) =>
+      `<h4 class="conj-group">${esc(g.label)}</h4>${conjTableHTML(g, para)}`).join('')}`;
+  $('#verb-modal').classList.remove('hidden');
+}
+
+function renderVerbBook() {
+  const list = $('#verb-list');
+  const search = $('#verb-search');
+  const draw = (filter) => {
+    const q = (filter || '').trim().toLowerCase();
+    const verbs = allVerbs().filter((v) =>
+      !q || v.inf.toLowerCase().includes(q) || v.en.toLowerCase().includes(q));
+    list.innerHTML = verbs.length
+      ? verbs.map((v) => `
+        <button type="button" class="verb-chip" data-verb="${esc(v.inf)}">
+          <span class="chip-inf">${esc(v.inf)}</span>
+          <span class="chip-en">${esc(v.en)}</span>
+        </button>`).join('')
+      : `<p class="hint">No verbs match “${esc(q)}”.</p>`;
+  };
+  search.value = '';
+  search.oninput = () => draw(search.value);
+  draw('');
+  show('#view-verbs');
+}
+
 /* ---------- progressive hints ----------
    Stuck ≠ guess: the 💡 button climbs a ladder — concept nudge → the exact
    ending (or 50/50 on multiple choice) → reveal-and-retype. Any hint halves
@@ -1202,7 +1435,7 @@ function detectPerson(text) {
 }
 
 function allVerbs() {
-  return REGULAR_VERBS.concat(IRREGULAR_VERBS);
+  return VERB_LIST;
 }
 
 // Figure out what a question is drilling: tense, verb, and person.
@@ -1777,15 +2010,26 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#profile-modal').addEventListener('click', (e) => {
     if (e.target === $('#profile-modal')) $('#profile-modal').classList.add('hidden');
   });
-  // Tense-name links appear anywhere inside the question card (prompt,
+  // Tense-name and verb links appear anywhere inside the question card (prompt,
   // drill hints, cloze hints, feedback), so delegate from the container
   $('#question-box').addEventListener('click', (e) => {
-    const link = e.target.closest('.tense-link');
-    if (link) openTenseModal(link.dataset.tense);
+    const tense = e.target.closest('.tense-link');
+    if (tense) { openTenseModal(tense.dataset.tense); return; }
+    const verb = e.target.closest('.verb-link');
+    if (verb) openVerbModal(verb.dataset.verb);
   });
   $('#tense-close').addEventListener('click', () => $('#tense-modal').classList.add('hidden'));
   $('#tense-modal').addEventListener('click', (e) => {
     if (e.target === $('#tense-modal')) $('#tense-modal').classList.add('hidden');
+  });
+  // Verb Book: chips (redrawn on search) delegate from the list container
+  $('#verb-list').addEventListener('click', (e) => {
+    const chip = e.target.closest('.verb-chip');
+    if (chip) openVerbModal(chip.dataset.verb);
+  });
+  $('#verb-close').addEventListener('click', () => $('#verb-modal').classList.add('hidden'));
+  $('#verb-modal').addEventListener('click', (e) => {
+    if (e.target === $('#verb-modal')) $('#verb-modal').classList.add('hidden');
   });
   $('#share-btn').addEventListener('click', shareResults);
   document.querySelectorAll('.home-link').forEach((b) =>
