@@ -626,36 +626,243 @@ function flagWidget(container, info) {
 
 /* ---------- profile (local for now; syncs to accounts later) ---------- */
 
-const AVATARS = ['🙂', '😎', '🤓', '🦉', '🐸', '🦊', '🐢', '🦜', '🐕', '🐱',
-  '🌵', '🌮', '🌶️', '🍇', '🍊', '☕', '🎸', '⚽', '🏄', '✈️', '🎨', '📚', '🌊', '⭐'];
+/*
+ * "Amigos" avatar set: hand-drawn inline SVG characters — full-colour shapes
+ * with an ink outline on a soft pastel disc. Self-contained by design: no
+ * uploads, no external assets (see ROADMAP's avatar/moderation policy).
+ * state.profile.avatar stores the stable `id`; `emoji` is kept for plain-text
+ * shares and for migrating profiles saved before the SVG set existed.
+ *
+ * Shape kinds: c(ircle), e(llipse, optional rot), rect, poly, path,
+ * line (ink stroke, e.g. smiles/whiskers), bline (body-colour stroke).
+ * Fill roles: body (c1), body2 (c2), accent (acc), detail (det), face (ink).
+ */
 
-function getAvatarGradientClass(emoji) {
-  switch (emoji) {
-    case '🙂': case '😎': case '🤓': case '⭐':
-      return 'av-g-gold';
-    case '🦉': case '🐸': case '🐢': case '🌵':
-      return 'av-g-green';
-    case '🦊': case '🌶️': case '🌮': case '🍊':
-      return 'av-g-spicy';
-    case '🦜': case '🎨':
-      return 'av-g-tropical';
-    case '🏄': case '✈️': case '🌊':
-      return 'av-g-sky';
-    case '🐕': case '🐱': case '☕':
-      return 'av-g-peach';
-    case '🎸': case '⚽':
-      return 'av-g-charcoal';
-    case '🍇':
-      return 'av-g-cosmic';
-    case '📚':
-      return 'av-g-teal';
-    default:
-      return 'av-g-gold';
-  }
+const AVATAR_INK = '#33281f';
+
+const AVATARS = [
+  { id: 'sol', label: 'Sol', emoji: '🙂', bg: '#dcebfa', p: { c1: '#f5c04a' }, shapes: [
+    { k: 'bline', d: 'M32 7 L32 13 M32 51 L32 57 M7 32 L13 32 M51 32 L57 32 M14.3 14.3 L18.6 18.6 M45.4 45.4 L49.7 49.7 M49.7 14.3 L45.4 18.6 M18.6 45.4 L14.3 49.7', w: 4 },
+    { k: 'c', x: 32, y: 32, rad: 15, r: 'body' },
+    { k: 'c', x: 26.5, y: 29.5, rad: 2.2, r: 'face' }, { k: 'c', x: 37.5, y: 29.5, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M27 36 Q32 39.5 37 36', w: 2.5 },
+  ] },
+  { id: 'limon', label: 'Limón', emoji: '😎', bg: '#f3e8fb', p: { c1: '#e0d14f', det: '#5aa35a' }, shapes: [
+    { k: 'rect', x: 30.5, y: 18, w: 3, h: 9, rx: 1.5, r: 'detail' },
+    { k: 'e', x: 38, y: 20, rx: 5, ry: 2.8, rot: 25, r: 'detail' },
+    { k: 'c', x: 14, y: 38, rad: 3.5, r: 'body' }, { k: 'c', x: 50, y: 38, rad: 3.5, r: 'body' },
+    { k: 'e', x: 32, y: 38, rx: 17, ry: 12.5, r: 'body' },
+    { k: 'c', x: 26, y: 36, rad: 2.2, r: 'face' }, { k: 'c', x: 38, y: 36, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M27 42 Q32 45 37 42', w: 2.5 },
+  ] },
+  { id: 'lapiz', label: 'Lápiz', emoji: '🤓', bg: '#e6f3d8', p: { c1: '#f2a33c', acc: '#f6e3c2', det: '#f08fb1' }, shapes: [
+    { k: 'rect', x: 25, y: 8, w: 14, h: 8, rx: 2.5, r: 'detail' },
+    { k: 'rect', x: 25, y: 14, w: 14, h: 30, rx: 2, r: 'body' },
+    { k: 'poly', pts: '25,44 39,44 32,56', r: 'accent' },
+    { k: 'poly', pts: '29.5,51.5 34.5,51.5 32,56', r: 'face' },
+    { k: 'c', x: 28.5, y: 26, rad: 2, r: 'face' }, { k: 'c', x: 35.5, y: 26, rad: 2, r: 'face' },
+    { k: 'line', d: 'M29 31 Q32 33.5 35 31', w: 2 },
+  ] },
+  { id: 'buho', label: 'Búho', emoji: '🦉', bg: '#e6f3d8', p: { c1: '#9a7355', acc: '#f2e2c8', det: '#f2b53c' }, shapes: [
+    { k: 'poly', pts: '18,10 27,18 14,21', r: 'body' }, { k: 'poly', pts: '46,10 37,18 50,21', r: 'body' },
+    { k: 'e', x: 32, y: 36, rx: 19, ry: 21, r: 'body' },
+    { k: 'e', x: 32, y: 46, rx: 11, ry: 9, r: 'accent' },
+    { k: 'c', x: 24, y: 28, rad: 7, r: 'accent' }, { k: 'c', x: 40, y: 28, rad: 7, r: 'accent' },
+    { k: 'c', x: 24, y: 28, rad: 3, r: 'face' }, { k: 'c', x: 40, y: 28, rad: 3, r: 'face' },
+    { k: 'poly', pts: '28,35 36,35 32,42', r: 'detail' },
+  ] },
+  { id: 'rana', label: 'Rana', emoji: '🐸', bg: '#fff3c9', p: { c1: '#6cbf5a', acc: '#ffffff' }, shapes: [
+    { k: 'c', x: 21, y: 22, rad: 8, r: 'body' }, { k: 'c', x: 43, y: 22, rad: 8, r: 'body' },
+    { k: 'e', x: 32, y: 38, rx: 20, ry: 16, r: 'body' },
+    { k: 'c', x: 21, y: 22, rad: 4.5, r: 'accent' }, { k: 'c', x: 43, y: 22, rad: 4.5, r: 'accent' },
+    { k: 'c', x: 21, y: 22, rad: 2.2, r: 'face' }, { k: 'c', x: 43, y: 22, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M24 42 Q32 48 40 42', w: 2.5 },
+  ] },
+  { id: 'zorro', label: 'Zorro', emoji: '🦊', bg: '#dcebfa', p: { c1: '#ec8f3f', acc: '#ffedd9' }, shapes: [
+    { k: 'poly', pts: '16,8 28,20 12,24', r: 'body' }, { k: 'poly', pts: '48,8 36,20 52,24', r: 'body' },
+    { k: 'c', x: 32, y: 34, rad: 19, r: 'body' },
+    { k: 'e', x: 32, y: 42, rx: 9, ry: 7, r: 'accent' },
+    { k: 'c', x: 24, y: 31, rad: 2.6, r: 'face' }, { k: 'c', x: 40, y: 31, rad: 2.6, r: 'face' },
+    { k: 'c', x: 32, y: 40, rad: 2.8, r: 'face' },
+  ] },
+  { id: 'tortuga', label: 'Tortuga', emoji: '🐢', bg: '#dcebfa', p: { c1: '#5aa35a', c2: '#8fd08f', acc: '#cfe8b0' }, shapes: [
+    { k: 'c', x: 32, y: 17, rad: 8, r: 'body2' },
+    { k: 'e', x: 14, y: 46, rx: 5, ry: 4, r: 'body2' }, { k: 'e', x: 50, y: 46, rx: 5, ry: 4, r: 'body2' },
+    { k: 'c', x: 32, y: 38, rad: 17, r: 'body' },
+    { k: 'c', x: 32, y: 38, rad: 9, r: 'accent' },
+    { k: 'c', x: 29, y: 15, rad: 1.8, r: 'face' }, { k: 'c', x: 35, y: 15, rad: 1.8, r: 'face' },
+  ] },
+  { id: 'loro', label: 'Loro', emoji: '🦜', bg: '#dff0f5', p: { c1: '#e05a4a', c2: '#4aa869', acc: '#f6d34e', det: '#e8a33c' }, shapes: [
+    { k: 'poly', pts: '26,54 36,54 31,63', r: 'detail' },
+    { k: 'e', x: 31, y: 44, rx: 12, ry: 14, r: 'body2' },
+    { k: 'c', x: 30, y: 24, rad: 13, r: 'body' },
+    { k: 'e', x: 24, y: 44, rx: 6, ry: 11, r: 'accent' },
+    { k: 'poly', pts: '41,17 53,24 42,32', r: 'detail' },
+    { k: 'c', x: 33, y: 22, rad: 4.5, r: 'accent' },
+    { k: 'c', x: 33, y: 22, rad: 2.2, r: 'face' },
+  ] },
+  { id: 'perro', label: 'Perro', emoji: '🐕', bg: '#ffe8cf', p: { c1: '#c99a6a', c2: '#a97e4f', acc: '#f2e2c8' }, shapes: [
+    { k: 'e', x: 14, y: 32, rx: 6, ry: 11, rot: 12, r: 'body2' },
+    { k: 'e', x: 50, y: 32, rx: 6, ry: 11, rot: -12, r: 'body2' },
+    { k: 'c', x: 32, y: 36, rad: 19, r: 'body' },
+    { k: 'e', x: 32, y: 43, rx: 9.5, ry: 7.5, r: 'accent' },
+    { k: 'c', x: 24, y: 31, rad: 2.6, r: 'face' }, { k: 'c', x: 40, y: 31, rad: 2.6, r: 'face' },
+    { k: 'e', x: 32, y: 40.5, rx: 3.4, ry: 2.6, r: 'face' },
+  ] },
+  { id: 'gato', label: 'Gato', emoji: '🐱', bg: '#f3e8fb', p: { c1: '#aab2bd', acc: '#f6d9e3' }, shapes: [
+    { k: 'poly', pts: '16,10 28,18 14,26', r: 'body' }, { k: 'poly', pts: '48,10 36,18 50,26', r: 'body' },
+    { k: 'c', x: 32, y: 36, rad: 19, r: 'body' },
+    { k: 'c', x: 24, y: 33, rad: 2.6, r: 'face' }, { k: 'c', x: 40, y: 33, rad: 2.6, r: 'face' },
+    { k: 'poly', pts: '29,40 35,40 32,44', r: 'face' },
+    { k: 'line', d: 'M11 36 L21 38 M11 43 L21 42', w: 2 },
+    { k: 'line', d: 'M53 36 L43 38 M53 43 L43 42', w: 2 },
+  ] },
+  { id: 'cactus', label: 'Cactus', emoji: '🌵', bg: '#ffe8cf', p: { c1: '#58a95e', acc: '#f08fb1' }, shapes: [
+    { k: 'c', x: 32, y: 12, rad: 4.5, r: 'accent' },
+    { k: 'rect', x: 11, y: 20, w: 9, h: 16, rx: 4.5, r: 'body' },
+    { k: 'rect', x: 15, y: 29, w: 13, h: 8, rx: 4, r: 'body' },
+    { k: 'rect', x: 44, y: 16, w: 9, h: 18, rx: 4.5, r: 'body' },
+    { k: 'rect', x: 36, y: 27, w: 13, h: 8, rx: 4, r: 'body' },
+    { k: 'rect', x: 25, y: 13, w: 14, h: 38, rx: 7, r: 'body' },
+    { k: 'c', x: 28, y: 31, rad: 2.2, r: 'face' }, { k: 'c', x: 36, y: 31, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M28 37 Q32 40 36 37', w: 2.5 },
+  ] },
+  { id: 'taco', label: 'Taco', emoji: '🌮', bg: '#e6f3d8', p: { c1: '#f2c14e', acc: '#7cc35e', det: '#e05a4a' }, shapes: [
+    { k: 'c', x: 16, y: 30, rad: 5, r: 'accent' }, { k: 'c', x: 24, y: 26, rad: 5.5, r: 'detail' },
+    { k: 'c', x: 32, y: 24, rad: 6, r: 'accent' }, { k: 'c', x: 40, y: 26, rad: 5.5, r: 'detail' },
+    { k: 'c', x: 48, y: 30, rad: 5, r: 'accent' },
+    { k: 'path', d: 'M10 30 A22 22 0 0 0 54 30 Z', r: 'body' },
+    { k: 'c', x: 26, y: 39, rad: 2.2, r: 'face' }, { k: 'c', x: 38, y: 39, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M27 44 Q32 47 37 44', w: 2.5 },
+  ] },
+  { id: 'chile', label: 'Chile', emoji: '🌶️', bg: '#fff3c9', p: { c1: '#d8402f', det: '#5aa35a' }, shapes: [
+    { k: 'rect', x: 30.5, y: 15, w: 3, h: 8, rx: 1.5, r: 'detail' },
+    { k: 'e', x: 37, y: 20, rx: 4.5, ry: 2.5, rot: 25, r: 'detail' },
+    { k: 'e', x: 32, y: 39, rx: 10, ry: 17, r: 'body' },
+    { k: 'c', x: 28, y: 34, rad: 2.2, r: 'face' }, { k: 'c', x: 36, y: 34, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M28 41 Q32 44 36 41', w: 2.5 },
+  ] },
+  { id: 'uvas', label: 'Uvas', emoji: '🍇', bg: '#fff3c9', p: { c1: '#9d6bc3', det: '#5aa35a' }, shapes: [
+    { k: 'rect', x: 30.5, y: 10, w: 3, h: 9, rx: 1.5, r: 'detail' },
+    { k: 'e', x: 38, y: 14, rx: 5.5, ry: 3, rot: 25, r: 'detail' },
+    { k: 'c', x: 24, y: 25, rad: 7, r: 'body' }, { k: 'c', x: 40, y: 25, rad: 7, r: 'body' },
+    { k: 'c', x: 18, y: 34, rad: 7, r: 'body' }, { k: 'c', x: 46, y: 34, rad: 7, r: 'body' },
+    { k: 'c', x: 24, y: 43, rad: 7, r: 'body' }, { k: 'c', x: 40, y: 43, rad: 7, r: 'body' },
+    { k: 'c', x: 32, y: 51, rad: 7, r: 'body' },
+    { k: 'c', x: 32, y: 32, rad: 7.5, r: 'body' },
+    { k: 'c', x: 29, y: 31, rad: 1.9, r: 'face' }, { k: 'c', x: 35, y: 31, rad: 1.9, r: 'face' },
+    { k: 'line', d: 'M29.5 35.5 Q32 37.5 34.5 35.5', w: 1.8 },
+  ] },
+  { id: 'naranja', label: 'Naranja', emoji: '🍊', bg: '#dcebfa', p: { c1: '#f2953c', det: '#5aa35a' }, shapes: [
+    { k: 'rect', x: 30.5, y: 12, w: 3, h: 8, rx: 1.5, r: 'detail' },
+    { k: 'e', x: 39, y: 16, rx: 5.5, ry: 3, rot: 30, r: 'detail' },
+    { k: 'c', x: 32, y: 37, rad: 17.5, r: 'body' },
+    { k: 'c', x: 26, y: 34, rad: 2.4, r: 'face' }, { k: 'c', x: 38, y: 34, rad: 2.4, r: 'face' },
+    { k: 'line', d: 'M27 41 Q32 44.5 37 41', w: 2.5 },
+  ] },
+  { id: 'cafe', label: 'Café', emoji: '☕', bg: '#dcebfa', p: { c1: '#d96a4a', acc: '#f2e2c8' }, shapes: [
+    { k: 'line', d: 'M26 20 Q23.5 16 26 11', w: 2.5 }, { k: 'line', d: 'M36 20 Q33.5 16 36 11', w: 2.5 },
+    { k: 'bline', d: 'M44 30 A6 6 0 1 1 44 40', w: 4 },
+    { k: 'e', x: 31, y: 49, rx: 17, ry: 4, r: 'accent' },
+    { k: 'rect', x: 18, y: 25, w: 26, h: 21, rx: 6, r: 'body' },
+    { k: 'c', x: 27, y: 33, rad: 2.2, r: 'face' }, { k: 'c', x: 37, y: 33, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M27.5 38.5 Q32 41.5 36.5 38.5', w: 2.5 },
+  ] },
+  { id: 'guitarra', label: 'Guitarra', emoji: '🎸', bg: '#dff0f5', p: { c1: '#c98d4f', acc: '#f2e2c8', det: '#7a5232' }, shapes: [
+    { k: 'rect', x: 28, y: 2, w: 8, h: 7, rx: 2, r: 'detail' },
+    { k: 'rect', x: 29.5, y: 5, w: 5, h: 22, rx: 2, r: 'detail' },
+    { k: 'c', x: 32, y: 31, rad: 10, r: 'body' },
+    { k: 'c', x: 32, y: 45, rad: 14, r: 'body' },
+    { k: 'c', x: 32, y: 38, rad: 5, r: 'face' },
+    { k: 'rect', x: 27, y: 50, w: 10, h: 3.5, rx: 1.75, r: 'detail' },
+  ] },
+  { id: 'balon', label: 'Balón', emoji: '⚽', bg: '#e6f3d8', p: { c1: '#f6f2e8' }, shapes: [
+    { k: 'c', x: 32, y: 34, rad: 18, r: 'body' },
+    { k: 'line', d: 'M32 24 L32 16.2 M40 30 L48.8 26.5 M37 39.5 L42.5 48 M27 39.5 L21.5 48 M24 30 L15.2 26.5', w: 2 },
+    { k: 'poly', pts: '32,24 40,30 37,39.5 27,39.5 24,30', r: 'face' },
+  ] },
+  { id: 'surf', label: 'Surf', emoji: '🏄', bg: '#fbe0e0', p: { c1: '#5ec8d8', acc: '#f6f2e8' }, shapes: [
+    { k: 'e', x: 32, y: 32, rx: 11, ry: 26, r: 'body' },
+    { k: 'rect', x: 30, y: 8, w: 4, h: 48, rx: 2, r: 'accent' },
+    { k: 'c', x: 26.5, y: 22, rad: 2.2, r: 'face' }, { k: 'c', x: 37.5, y: 22, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M28 28 Q32 31 36 28', w: 2.5 },
+  ] },
+  { id: 'avion', label: 'Avión', emoji: '✈️', bg: '#fff3c9', p: { c1: '#e8ecf2', c2: '#c5ccd8' }, shapes: [
+    { k: 'poly', pts: '8,45 55,16 33,43', r: 'body' },
+    { k: 'poly', pts: '33,43 55,16 37,53', r: 'body2' },
+  ] },
+  { id: 'paleta', label: 'Paleta', emoji: '🎨', bg: '#fbe0e0', p: { c1: '#d8b078', c2: '#4aa869', acc: '#f6d34e', det: '#e05a4a' }, shapes: [
+    { k: 'c', x: 32, y: 36, rad: 19, r: 'body' },
+    { k: 'c', x: 41, y: 46, rad: 5.5, r: 'face' },
+    { k: 'c', x: 21, y: 32, rad: 3.8, r: 'detail' },
+    { k: 'c', x: 27, y: 24, rad: 3.8, r: 'accent' },
+    { k: 'c', x: 37, y: 23, rad: 3.8, r: 'body2' },
+    { k: 'c', x: 45, y: 29, rad: 3.8, f: '#4a7fb5' },
+  ] },
+  { id: 'libro', label: 'Libro', emoji: '📚', bg: '#ffe8cf', p: { c1: '#4a7fb5', c2: '#3a6690', det: '#e05a4a' }, shapes: [
+    { k: 'rect', x: 19, y: 13, w: 27, h: 38, rx: 3, r: 'body' },
+    { k: 'rect', x: 19, y: 13, w: 7, h: 38, rx: 3, r: 'body2' },
+    { k: 'poly', pts: '38,13 44,13 44,24 41,20 38,24', r: 'detail' },
+    { k: 'c', x: 32, y: 32, rad: 2.2, r: 'face' }, { k: 'c', x: 40, y: 32, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M32.5 38 Q36 41 39.5 38', w: 2.5 },
+  ] },
+  { id: 'ola', label: 'Ola', emoji: '🌊', bg: '#fff3c9', p: { c1: '#4fa8d8', acc: '#f6f2e8' }, shapes: [
+    { k: 'path', d: 'M7 50 Q7 27 30 22.5 Q53 18 55 50 Z', r: 'body' },
+    { k: 'c', x: 14, y: 37, rad: 5, r: 'accent' },
+    { k: 'c', x: 21.5, y: 29, rad: 5.5, r: 'accent' },
+    { k: 'c', x: 31, y: 23.5, rad: 5, r: 'accent' },
+    { k: 'c', x: 37, y: 37, rad: 2.2, r: 'face' }, { k: 'c', x: 45, y: 37, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M38 42.5 Q41.5 45 45 42.5', w: 2.5 },
+  ] },
+  { id: 'estrella', label: 'Estrella', emoji: '⭐', bg: '#f3e8fb', p: { c1: '#f5c842' }, shapes: [
+    { k: 'poly', pts: '32,13 37.3,26.7 52,27.5 40.6,36.8 44.3,51 32,43 19.7,51 23.4,36.8 12,27.5 26.7,26.7', r: 'body' },
+    { k: 'c', x: 27.5, y: 30, rad: 2.2, r: 'face' }, { k: 'c', x: 36.5, y: 30, rad: 2.2, r: 'face' },
+    { k: 'line', d: 'M28 35.5 Q32 38.5 36 35.5', w: 2.5 },
+  ] },
+];
+
+const AVATAR_BY_ID = Object.fromEntries(AVATARS.map((a) => [a.id, a]));
+const AVATAR_BY_EMOJI = Object.fromEntries(AVATARS.map((a) => [a.emoji, a]));
+
+// Accepts an avatar id, a legacy emoji (pre-SVG profiles), or garbage.
+function getAvatar(value) {
+  return AVATAR_BY_ID[value] || AVATAR_BY_EMOJI[value] || AVATAR_BY_ID.sol;
+}
+
+function avatarFill(role, p) {
+  if (role === 'body') return p.c1;
+  if (role === 'body2') return p.c2 || p.c1;
+  if (role === 'accent') return p.acc || '#fff7ea';
+  if (role === 'detail') return p.det || p.c2 || p.c1;
+  return AVATAR_INK; // face
+}
+
+function avatarSVG(a) {
+  const parts = a.shapes.map((s) => {
+    if (s.k === 'line' || s.k === 'bline') {
+      const col = s.k === 'line' ? AVATAR_INK : a.p.c1;
+      return `<path d="${s.d}" fill="none" stroke="${col}" stroke-width="${s.w}"
+        stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    const fill = s.f || avatarFill(s.r, a.p); // s.f = explicit one-off colour
+    const outline = s.r === 'face' ? '' :
+      ` stroke="${AVATAR_INK}" stroke-width="2" stroke-linejoin="round"`;
+    if (s.k === 'c') return `<circle cx="${s.x}" cy="${s.y}" r="${s.rad}" fill="${fill}"${outline}/>`;
+    if (s.k === 'e') {
+      const rot = s.rot ? ` transform="rotate(${s.rot} ${s.x} ${s.y})"` : '';
+      return `<ellipse cx="${s.x}" cy="${s.y}" rx="${s.rx}" ry="${s.ry}" fill="${fill}"${outline}${rot}/>`;
+    }
+    if (s.k === 'rect') return `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx}" fill="${fill}"${outline}/>`;
+    if (s.k === 'poly') return `<polygon points="${s.pts}" fill="${fill}"${outline}/>`;
+    return `<path d="${s.d}" fill="${fill}"${outline}/>`;
+  });
+  return `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">${parts.join('')}</svg>`;
 }
 
 function profile() {
-  if (!state.profile) state.profile = { name: '', avatar: '🙂' };
+  if (!state.profile) state.profile = { name: '', avatar: 'sol' };
+  // Migrate legacy emoji values (and anything unknown) to a stable id.
+  state.profile.avatar = getAvatar(state.profile.avatar).id;
   return state.profile;
 }
 
@@ -663,11 +870,10 @@ function openProfileModal() {
   const p = profile();
   $('#profile-name').value = p.name;
   const grid = $('#avatar-grid');
-  grid.innerHTML = AVATARS.map((a) => {
-    const grad = getAvatarGradientClass(a);
-    return `<button type="button" class="avatar-choice ${grad} ${a === p.avatar ? 'selected' : ''}"
-       data-a="${a}"><span class="avatar-emoji">${a}</span></button>`;
-  }).join('');
+  grid.innerHTML = AVATARS.map((a) => `
+    <button type="button" class="avatar-choice ${a.id === p.avatar ? 'selected' : ''}"
+       data-a="${a.id}" style="background:${a.bg}" title="${a.label}"
+       aria-label="${a.label}">${avatarSVG(a)}</button>`).join('');
   grid.querySelectorAll('.avatar-choice').forEach((b) => {
     b.addEventListener('click', () => {
       grid.querySelectorAll('.avatar-choice').forEach((x) => x.classList.remove('selected'));
@@ -701,7 +907,8 @@ async function shareResults() {
   const p = profile();
   const headline = $('#results-headline').textContent;
   const lvl = state.level ? levelById(state.level) : null;
-  const who = p.name ? `${p.avatar} ${p.name}` : p.avatar;
+  const emoji = getAvatar(p.avatar).emoji; // shares are plain text — use the emoji twin
+  const who = p.name ? `${emoji} ${p.name}` : emoji;
   const where = /^https?:$/.test(location.protocol) ? ` ${location.origin}${location.pathname}` : '';
   const text = `${who} — ${headline}` +
     `${lvl ? ` (level ${lvl.cefr})` : ''} on Konjuga, the Spanish grammar trainer.${where}`;
@@ -733,14 +940,11 @@ function renderHeader() {
   $('#current-level').textContent = lvl ? `${lvl.cefr} · ${lvl.name}` : 'No level set';
   const p = profile();
   const btn = $('#profile-btn');
-  
-  // reset class list to base and set dynamic gradient background
-  btn.className = 'avatar-btn';
-  const grad = getAvatarGradientClass(p.avatar);
-  btn.classList.add(grad);
-  btn.innerHTML = `<span class="avatar-emoji">${p.avatar}</span>`;
-  
+  const av = getAvatar(p.avatar);
+  btn.style.background = av.bg;
+  btn.innerHTML = avatarSVG(av);
   btn.title = p.name ? `${p.name} — edit profile` : 'Set up your profile';
+  btn.setAttribute('aria-label', btn.title);
 }
 
 function renderHome() {
