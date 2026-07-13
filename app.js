@@ -629,6 +629,31 @@ function flagWidget(container, info) {
 const AVATARS = ['🙂', '😎', '🤓', '🦉', '🐸', '🦊', '🐢', '🦜', '🐕', '🐱',
   '🌵', '🌮', '🌶️', '🍇', '🍊', '☕', '🎸', '⚽', '🏄', '✈️', '🎨', '📚', '🌊', '⭐'];
 
+function getAvatarGradientClass(emoji) {
+  switch (emoji) {
+    case '🙂': case '😎': case '🤓': case '⭐':
+      return 'av-g-gold';
+    case '🦉': case '🐸': case '🐢': case '🌵':
+      return 'av-g-green';
+    case '🦊': case '🌶️': case '🌮': case '🍊':
+      return 'av-g-spicy';
+    case '🦜': case '🎨':
+      return 'av-g-tropical';
+    case '🏄': case '✈️': case '🌊':
+      return 'av-g-sky';
+    case '🐕': case '🐱': case '☕':
+      return 'av-g-peach';
+    case '🎸': case '⚽':
+      return 'av-g-charcoal';
+    case '🍇':
+      return 'av-g-cosmic';
+    case '📚':
+      return 'av-g-teal';
+    default:
+      return 'av-g-gold';
+  }
+}
+
 function profile() {
   if (!state.profile) state.profile = { name: '', avatar: '🙂' };
   return state.profile;
@@ -638,13 +663,22 @@ function openProfileModal() {
   const p = profile();
   $('#profile-name').value = p.name;
   const grid = $('#avatar-grid');
-  grid.innerHTML = AVATARS.map((a) =>
-    `<button type="button" class="avatar-choice ${a === p.avatar ? 'selected' : ''}"
-       data-a="${a}">${a}</button>`).join('');
+  grid.innerHTML = AVATARS.map((a) => {
+    const grad = getAvatarGradientClass(a);
+    return `<button type="button" class="avatar-choice ${grad} ${a === p.avatar ? 'selected' : ''}"
+       data-a="${a}"><span class="avatar-emoji">${a}</span></button>`;
+  }).join('');
   grid.querySelectorAll('.avatar-choice').forEach((b) => {
     b.addEventListener('click', () => {
       grid.querySelectorAll('.avatar-choice').forEach((x) => x.classList.remove('selected'));
       b.classList.add('selected');
+      
+      b.classList.remove('clicked');
+      void b.offsetWidth; // trigger reflow
+      b.classList.add('clicked');
+    });
+    b.addEventListener('animationend', () => {
+      b.classList.remove('clicked');
     });
   });
   $('#profile-modal').classList.remove('hidden');
@@ -699,7 +733,13 @@ function renderHeader() {
   $('#current-level').textContent = lvl ? `${lvl.cefr} · ${lvl.name}` : 'No level set';
   const p = profile();
   const btn = $('#profile-btn');
-  btn.textContent = p.avatar;
+  
+  // reset class list to base and set dynamic gradient background
+  btn.className = 'avatar-btn';
+  const grad = getAvatarGradientClass(p.avatar);
+  btn.classList.add(grad);
+  btn.innerHTML = `<span class="avatar-emoji">${p.avatar}</span>`;
+  
   btn.title = p.name ? `${p.name} — edit profile` : 'Set up your profile';
 }
 
