@@ -12,6 +12,6 @@
    ============================================================ */
 
 const SYNC_CONFIG = {
-  url: '',      // e.g. 'https://abcdefgh.supabase.co'
-  anonKey: '',  // the long 'anon public' key from Project Settings → API
+  url: 'http://konjuga.com',      // e.g. 'https://abcdefgh.supabase.co'
+  anonKey: 'sb_publishable_4STuysw1BewX7DuHRY_o-Q_6j5cnMSN',  // the long 'anon public' key from Project Settings → API
 };
