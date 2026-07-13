@@ -1,4 +1,4 @@
-# ¡Adelante! — Roadmap to a social Spanish app
+# Konjuga — Roadmap to a social Spanish app
 
 The goal: start as a hobby app for close friends and family (avatars, visible
 Spanish levels, light community features), grow organically if people love it.
@@ -18,7 +18,7 @@ Static site on Netlify, no backend. Already in place:
   email. Maintainer address lives in `FLAG_EMAIL` in `app.js`
 - Duolingo non-affiliation disclaimer in the footer
 - All progress (XP, streak, per-topic stats, review queue, weak-form weights,
-  seen-content cycling) in one localStorage object: `adelante-state-v1` —
+  seen-content cycling) in one localStorage object: `konjuga-state-v1` —
   this single object is the thing accounts will sync
 
 **Sharing it today**: send friends the Netlify URL. Each person's progress and
@@ -52,7 +52,7 @@ create table profiles (
 
 create table progress (
   user_id uuid primary key references profiles on delete cascade,
-  blob jsonb not null,                        -- the adelante-state-v1 object
+  blob jsonb not null,                        -- the konjuga-state-v1 object
   updated_at timestamptz not null default now()
 );
 
@@ -141,7 +141,7 @@ Only when strangers start signing up:
 
 1. **No framework.** Vanilla JS has zero dependency rot — the app from Phase 0
    still runs unmodified in ten years.
-2. **One state object.** Everything syncable lives in `adelante-state-v1`.
+2. **One state object.** Everything syncable lives in `konjuga-state-v1`.
    New features add keys to it; sync code never changes.
 3. **Emoji avatars only.** The single highest-leverage legal/moderation
    decision in this document.

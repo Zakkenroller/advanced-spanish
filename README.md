@@ -1,4 +1,4 @@
-# ¡Adelante! — Spanish Grammar Trainer
+# Konjuga — Spanish Grammar Trainer
 
 A lightweight web app for practicing the three pillars of Spanish grammar:
 

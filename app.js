@@ -1,9 +1,10 @@
 /* ============================================================
-   ¡Adelante! — Spanish trainer
+   Konjuga — Spanish trainer
    Views: home · lesson · practice (topic quiz / drill / placement) · results
    ============================================================ */
 
-const STORE_KEY = 'adelante-state-v1';
+const STORE_KEY = 'konjuga-state-v1';
+const LEGACY_STORE_KEY = 'adelante-state-v1'; // pre-rebrand; migrated on load
 
 const state = load() || {
   level: null,          // null until chosen or placed
@@ -14,11 +15,17 @@ const state = load() || {
 };
 
 function load() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; }
+  try {
+    return JSON.parse(localStorage.getItem(STORE_KEY))
+        || JSON.parse(localStorage.getItem(LEGACY_STORE_KEY));
+  } catch { return null; }
 }
 function save() {
   state._updatedAt = Date.now(); // lets cloud sync pick a winner across devices
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    localStorage.removeItem(LEGACY_STORE_KEY); // migration complete
+  } catch {}
   if (typeof syncQueuePush === 'function') syncQueuePush();
 }
 
@@ -571,7 +578,7 @@ async function postFlag(flag) {
 }
 
 function mailtoFlag(flag) {
-  const subject = encodeURIComponent('¡Adelante! question flag: ' + flag.reason);
+  const subject = encodeURIComponent('Konjuga question flag: ' + flag.reason);
   const body = encodeURIComponent(
     `Question: ${flag.question}\nExpected answer: ${flag.answer}\n` +
     `Where: ${flag.context}\nReason: ${flag.reason}\nComment: ${flag.comment}\n` +
@@ -663,7 +670,7 @@ async function shareResults() {
   const who = p.name ? `${p.avatar} ${p.name}` : p.avatar;
   const where = /^https?:$/.test(location.protocol) ? ` ${location.origin}${location.pathname}` : '';
   const text = `${who} — ${headline}` +
-    `${lvl ? ` (level ${lvl.cefr})` : ''} on ¡Adelante!, the Spanish grammar trainer.${where}`;
+    `${lvl ? ` (level ${lvl.cefr})` : ''} on Konjuga, the Spanish grammar trainer.${where}`;
   const btn = $('#share-btn');
   if (navigator.share) {
     try { await navigator.share({ text }); return; } catch { /* user cancelled */ }
@@ -1544,6 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Clear the cloud copy too, or sign-in would just restore everything
       if (typeof syncReset === 'function') await syncReset();
       localStorage.removeItem(STORE_KEY);
+      localStorage.removeItem(LEGACY_STORE_KEY);
       location.reload();
     }
   });
