@@ -12,6 +12,7 @@ const state = load() || {
   streak: 0,            // best answer streak
   stats: {},            // `${level}:${topic}` -> { attempts, correct, recent: [] }
   placed: false,
+  settings: { vosotros: true }, // vosotros/vosotras drilled & shown by default
 };
 
 function load() {
@@ -54,6 +55,22 @@ function sample(arr, n) {
 
 function stripAccents(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+/* ---------- vosotros toggle ----------
+   The vosotros/vosotras "you all" form is used in Spain but not in Latin
+   American Spanish. Learners who skip it can turn it off: it then disappears
+   from conjugation tables, ending references, flashcards, and the drill. */
+function settings() {
+  if (!state.settings) state.settings = { vosotros: true };
+  return state.settings;
+}
+function usesVosotros() {
+  return settings().vosotros !== false;
+}
+// Person indices (into PERSONS / ending arrays) currently in play.
+function activePersonIndices() {
+  return usesVosotros() ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 5];
 }
 
 function levelById(id) { return LEVELS.find((l) => l.id === id); }
@@ -374,7 +391,8 @@ function makeDrillQuestion(levelId) {
     verb = pool[Math.floor(Math.random() * pool.length)];
   }
 
-  const person = Math.floor(Math.random() * 6);
+  const persons = activePersonIndices();
+  const person = persons[Math.floor(Math.random() * persons.length)];
   const answer = conjugate(verb, tense, person);
   const info = TENSE_INFO[tense];
   const frame = pick(DRILL_FRAMES[tense]);
@@ -509,7 +527,7 @@ function genPronounQuestion(levelId) {
         exp: `${art} ${w} = ${fem ? 'feminine' : 'masculine'} ${plural ? 'plural' : 'singular'} → ${answer.toLowerCase()}.` };
     }
     // reflexive pronoun by person
-    const person = Math.floor(Math.random() * 6);
+    const person = pick(activePersonIndices());
     const verb = pick(GEN_REFLEXIVES);
     const form = conjugateRegular(verb.inf, 'present', person);
     const answer = REFLEXIVE_PRONOUNS[person];
@@ -1202,6 +1220,8 @@ function renderHome() {
   }
 
   renderLab();
+  const vTog = $('#vosotros-toggle');
+  if (vTog) vTog.checked = usesVosotros();
   show('#view-home');
 }
 
@@ -1245,6 +1265,13 @@ function renderLab() {
       <p class="topic-level-desc">Look up any of <b>${VERB_LIST.length} verbs</b> and see it fully
         conjugated — every tense, plus participle and gerund. Just like the old verb-tense books.</p>
       <div class="card-actions"><button class="btn primary" id="verbbook-btn">📖 Browse verbs</button></div>
+    </div>
+    <div class="card topic-card">
+      <div class="topic-head"><span class="topic-icon">🃏</span><h3>Ending Flashcards</h3></div>
+      <p class="topic-level-desc">Flip through all <b>${FLASHCARD_TENSES.length} tenses</b>: the verb
+        endings on one side, what each tense means and when to use it on the other. Quiz yourself,
+        then check.</p>
+      <div class="card-actions"><button class="btn primary" id="flashcards-btn">🃏 Study endings</button></div>
     </div>`;
 
   $('#toolkit-btn').addEventListener('click', renderToolkit);
@@ -1252,6 +1279,7 @@ function renderLab() {
   $('#story-btn').addEventListener('click', () => startSession('story', state.level, null));
   $('#workout-btn').addEventListener('click', () => startSession('workout', state.level, null));
   $('#verbbook-btn').addEventListener('click', renderVerbBook);
+  $('#flashcards-btn').addEventListener('click', renderFlashcards);
 }
 
 function renderToolkit() {
@@ -1319,16 +1347,17 @@ function linkifyTenses(html) {
 function endingsTableHTML(endingsKey) {
   const e = REGULAR_ENDINGS[endingsKey];
   if (!e) return '';
+  const idxs = activePersonIndices();
   if (e.all) {
     return `<table class="endings-table">
-      ${PERSONS.map((p, i) =>
-        `<tr><td>${p.label}</td><td>infinitive + <b>-${e.all[i]}</b></td></tr>`).join('')}
+      ${idxs.map((i) =>
+        `<tr><td>${PERSONS[i].label}</td><td>infinitive + <b>-${e.all[i]}</b></td></tr>`).join('')}
     </table>`;
   }
   return `<table class="endings-table">
     <tr><th></th><th>-ar</th><th>-er</th><th>-ir</th></tr>
-    ${PERSONS.map((p, i) =>
-      `<tr><td>${p.label}</td><td>-${e.ar[i]}</td><td>-${e.er[i]}</td><td>-${e.ir[i]}</td></tr>`).join('')}
+    ${idxs.map((i) =>
+      `<tr><td>${PERSONS[i].label}</td><td>-${e.ar[i]}</td><td>-${e.er[i]}</td><td>-${e.ir[i]}</td></tr>`).join('')}
   </table>`;
 }
 
@@ -1366,9 +1395,9 @@ function conjTableHTML(group, para) {
     const n = tenseLabel(t);
     return `<th>${esc(n.es)}<br><small>${esc(n.en)}</small></th>`;
   }).join('');
-  const rows = PERSONS.map((p, i) => {
+  const rows = activePersonIndices().map((i) => {
     const cells = group.tenses.map((t) => `<td>${esc(para.tenses[t][i])}</td>`).join('');
-    return `<tr><th class="person">${esc(p.label)}</th>${cells}</tr>`;
+    return `<tr><th class="person">${esc(PERSONS[i].label)}</th>${cells}</tr>`;
   }).join('');
   return `<div class="conj-scroll"><table class="conj-table">
     <tr><th></th>${heads}</tr>${rows}</table></div>`;
@@ -1413,6 +1442,70 @@ function renderVerbBook() {
   search.oninput = () => draw(search.value);
   draw('');
   show('#view-verbs');
+}
+
+/* ---------- ending flashcards ----------
+   A study deck built from the same TENSE_REFERENCE source as the tense popup:
+   the front names a tense, the back reveals its endings (or compound formula)
+   plus what it is and when to use it. Ending tables honour the vosotros toggle. */
+
+// Simple tenses first (in learning order), then the compound tenses.
+const FLASHCARD_TENSES = [
+  'present', 'preterite', 'imperfect', 'future', 'conditional',
+  'presentSubj', 'imperfectSubj',
+  'perfect', 'pluperfect', 'futurePerfect', 'conditionalPerfect',
+];
+
+let flashState = null; // { order: [tenseKey], index, flipped }
+
+function flashcardFrontHTML(ref) {
+  const es = ref.names[0];
+  const en = ref.names[ref.names.length - 1];
+  return `<div class="fc-face fc-front">
+    <span class="fc-kicker">tense</span>
+    <h3 class="fc-title">${esc(es)}</h3>
+    ${en !== es ? `<p class="fc-sub">${esc(en)}</p>` : ''}
+    <p class="fc-prompt">Do you know how it's formed and when to use it?</p>
+    <p class="fc-tap">Tap to reveal →</p>
+  </div>`;
+}
+
+function flashcardBackHTML(ref) {
+  const es = ref.names[0];
+  const en = ref.names[ref.names.length - 1];
+  const build = ref.endings
+    ? `<p class="endings-title"><b>Endings${REGULAR_ENDINGS[ref.endings].all
+        ? ' (added to the whole infinitive)' : ''}:</b></p>${endingsTableHTML(ref.endings)}`
+    : `<p><b>How it's built:</b> ${esc(ref.formula)}.</p>`;
+  return `<div class="fc-face fc-back">
+    <h3 class="fc-title">${esc(es)}${en !== es
+      ? ` <small class="tense-en">(${esc(en)})</small>` : ''}</h3>
+    <p><b>What it is:</b> ${esc(ref.what)}</p>
+    <p><b>When to use it:</b> ${esc(ref.when)}</p>
+    ${build}
+    <p class="tense-irreg">⚠️ ${esc(ref.irregular)}</p>
+  </div>`;
+}
+
+function drawFlashcard() {
+  const ref = TENSE_REFERENCE[flashState.order[flashState.index]];
+  const el = $('#flashcard');
+  el.classList.toggle('flipped', flashState.flipped);
+  el.innerHTML = flashState.flipped ? flashcardBackHTML(ref) : flashcardFrontHTML(ref);
+  $('#fc-counter').textContent = `${flashState.index + 1} / ${flashState.order.length}`;
+}
+
+function flashStep(delta) {
+  const n = flashState.order.length;
+  flashState.index = (flashState.index + delta + n) % n;
+  flashState.flipped = false;
+  drawFlashcard();
+}
+
+function renderFlashcards() {
+  flashState = { order: FLASHCARD_TENSES.slice(), index: 0, flipped: false };
+  drawFlashcard();
+  show('#view-flashcards');
 }
 
 /* ---------- progressive hints ----------
@@ -1497,7 +1590,7 @@ function endingHintHTML(meta, q) {
   // Person unknown: give the whole endings row for this verb type
   const endings = e.all || e[type];
   let h = `<b>-${type} ${esc(ref.names[0])} endings${e.all ? ' (on the infinitive)' : ''}:</b>
-    ${PERSONS.map((p, i) => `${p.label} <b>-${endings[i]}</b>`).join(' · ')}`;
+    ${activePersonIndices().map((i) => `${PERSONS[i].label} <b>-${endings[i]}</b>`).join(' · ')}`;
   if (verb.forms && verb.forms[tenseKey]) {
     h += `<br>⚠️ Ojo — <b>${esc(verb.inf)}</b> is irregular in this tense. ${esc(ref.irregular)}`;
   }
@@ -2032,6 +2125,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === $('#verb-modal')) $('#verb-modal').classList.add('hidden');
   });
   $('#share-btn').addEventListener('click', shareResults);
+  // Ending flashcards: flip on tap, step through the deck, or reshuffle
+  $('#flashcard').addEventListener('click', () => {
+    flashState.flipped = !flashState.flipped;
+    drawFlashcard();
+  });
+  $('#fc-prev').addEventListener('click', () => flashStep(-1));
+  $('#fc-next').addEventListener('click', () => flashStep(1));
+  $('#fc-flip').addEventListener('click', () => {
+    flashState.flipped = !flashState.flipped;
+    drawFlashcard();
+  });
+  $('#fc-shuffle').addEventListener('click', () => {
+    flashState.order = shuffle(flashState.order);
+    flashState.index = 0;
+    flashState.flipped = false;
+    drawFlashcard();
+  });
+  // Vosotros toggle: drop or restore the Spain-only "you all" form everywhere
+  $('#vosotros-toggle').addEventListener('change', (e) => {
+    settings().vosotros = e.target.checked;
+    save();
+  });
   document.querySelectorAll('.home-link').forEach((b) =>
     b.addEventListener('click', renderHome));
   $('#reset-btn').addEventListener('click', async () => {

@@ -569,6 +569,47 @@ h3 { font-size: 1.02rem; margin: .9rem 0 .4rem; }
 .conj-table.nonfinite { width: auto; margin: .2rem 0 .4rem; }
 .conj-table.nonfinite th { color: var(--muted); }
 
+/* ---------- ending flashcards ---------- */
+
+.flashcard-wrap { margin: .6rem 0 1rem; }
+.flashcard {
+  min-height: 15rem; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 1.4rem 1.3rem;
+  display: flex; flex-direction: column; justify-content: center;
+  transition: border-color .15s;
+}
+.flashcard:hover { border-color: var(--brand); }
+.flashcard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.flashcard.flipped { justify-content: flex-start; }
+.fc-front { text-align: center; }
+.fc-kicker {
+  text-transform: uppercase; letter-spacing: .12em;
+  font-size: .68rem; font-weight: 800; color: var(--muted);
+}
+.fc-title { font-size: 1.5rem; margin: .3rem 0 .1rem; color: var(--brand); }
+.fc-sub { color: var(--muted); }
+.fc-prompt { margin-top: 1.1rem; color: var(--muted); font-size: .9rem; }
+.fc-tap { margin-top: .4rem; color: var(--brand); font-weight: 700; font-size: .9rem; }
+.fc-back .fc-title { font-size: 1.15rem; }
+.fc-back p { margin: .4rem 0; font-size: .92rem; }
+.flashcard-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+}
+.fc-counter { color: var(--muted); font-weight: 700; }
+.flashcard-tools { display: flex; gap: .5rem; justify-content: center; margin-top: .8rem; }
+
+/* ---------- settings toggle ---------- */
+
+.settings-row { margin: 0 0 1rem; }
+.toggle {
+  display: inline-flex; align-items: center; gap: .5rem;
+  cursor: pointer; font-size: .9rem; color: var(--muted);
+}
+.toggle input { width: 1.1rem; height: 1.1rem; accent-color: var(--brand); cursor: pointer; }
+.toggle b { color: var(--ink); }
+
 /* ---------- progressive hints ---------- */
 
 .hint-area { margin-top: .8rem; }
