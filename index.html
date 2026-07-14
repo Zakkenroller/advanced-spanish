@@ -106,6 +106,12 @@
       </div>
 
       <footer class="foot">
+        <div class="settings-row">
+          <label class="toggle" title="Turn off if you don't use Spain's informal “you all”">
+            <input type="checkbox" id="vosotros-toggle" checked>
+            <span>Practice <b>vosotros</b> (Spain's informal “you all”)</span>
+          </label>
+        </div>
         <button class="btn ghost small" id="reset-btn">Reset progress</button>
         <p class="fineprint">Not affiliated with Duolingo; CEFR comparisons are approximate.
           Spot an error? Use the 🚩 button under any question.</p>
@@ -139,6 +145,27 @@
       <input id="verb-search" type="search" class="verb-search"
              placeholder="Search a verb (Spanish or English)…" autocomplete="off">
       <div id="verb-list" class="verb-book-list"></div>
+    </section>
+
+    <!-- ENDING FLASHCARDS -->
+    <section id="view-flashcards" class="view">
+      <button class="btn ghost small home-link">← Back</button>
+      <h2>🃏 Ending Flashcards</h2>
+      <p class="lab-intro">Flip through every tense: the verb endings on one side, what the tense
+        means and when to use it on the other. Guess first, then tap the card to check.</p>
+      <div class="flashcard-wrap">
+        <div id="flashcard" class="flashcard" role="button" tabindex="0"
+             aria-label="Flashcard — tap to flip"></div>
+      </div>
+      <div class="flashcard-nav">
+        <button class="btn ghost" id="fc-prev">← Prev</button>
+        <span id="fc-counter" class="fc-counter"></span>
+        <button class="btn ghost" id="fc-next">Next →</button>
+      </div>
+      <div class="flashcard-tools">
+        <button class="btn ghost small" id="fc-flip">🔄 Flip</button>
+        <button class="btn ghost small" id="fc-shuffle">🔀 Shuffle</button>
+      </div>
     </section>
 
     <!-- PRACTICE -->

@@ -48,6 +48,10 @@ your level for you.
   session, which is harder than blocked practice but better for long-term retention
 - **Adaptive difficulty** — the app tracks your rolling accuracy per topic and
   suggests moving up (≥85%) or reviewing a level down (≤50%)
+- **Skip vosotros** — a toggle on the home screen turns off Spain's informal
+  *vosotros*/*vosotras* "you all". With it off, that form disappears from the
+  conjugation drill, ending references, flashcards, and every verb table — handy
+  if you're learning Latin American Spanish
 - **Progress that sticks** — XP, streaks, and per-topic stats are saved in your
   browser (localStorage); nothing leaves your machine unless you enable sync
 - **Optional accounts & sync** — with a free Supabase project configured (see
@@ -77,6 +81,9 @@ processing instruction, and interleaved retrieval practice):
   context, with the rule), then an immediate **fix-it round** where you retype
   every miss — repeating until you get each one right — and finally a spot in
   the spaced-repetition review queue
+- **Ending Flashcards** — flip through all eleven tenses: the verb endings (or the
+  compound-tense formula) on one side, what the tense means and when to use it on
+  the other. Tap to reveal, step through the deck, or shuffle
 - **Tense Workout** — a tense-focused interleaved set: detective questions,
   curated exercises, and generated drills shuffled together
 
